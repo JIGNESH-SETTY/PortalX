@@ -1,28 +1,93 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRM Portal</title>
+    <title>PortalX | SRM AP Student Portal</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <header class="navbar">
+        <a href="#" class="logo">Portal<span>X</span></a>
+        <span class="nav-label">SRM AP Student Portal</span>
+    </header>
+
     <main class="container">
-        <h1>SRM Student Portal</h1>
 
-        <section class="card">
-            <h2>Student</h2>
-            <button id="studentBtn">Get Student Data</button>
-            <div id="studentData"></div>
+        <section class="hero">
+            <div class="hero-content">
+                <p class="eyebrow">YOUR ACADEMIC COMPANION</p>
+                <h1>Welcome to <span>PortalX</span></h1>
+                <p class="hero-description">
+                    Your academic journey, simplified.
+                    Access your student information and track your progress in one place.
+                </p>
+            </div>
+
+            <div class="hero-symbol">PX</div>
         </section>
 
-        <section class="card">
-            <h2>Attendance</h2>
-            <button id="attendanceBtn">Get Attendance</button>
-            <div id="attendanceData"></div>
+        <section class="features">
+            <h2>Your Academic Dashboard</h2>
+            <p class="section-description">
+                Explore your academic information using the tools below.
+            </p>
+
+            <div class="card-grid">
+
+                <article class="card">
+                    <div class="card-icon blue">01</div>
+                    <h3>Student Profile</h3>
+                    <p>View your student information and academic details.</p>
+                    <button id="studentBtn" class="button">
+                        Get Student Data
+                    </button>
+                    <div id="studentData" class="data-output profile-output"></div>
+                </article>
+
+                <article class="card">
+                    <div class="card-icon green">02</div>
+                    <h3>Attendance</h3>
+                    <p>Check your overall and subject-wise attendance.</p>
+                    <button id="attendanceBtn" class="button">
+                        Get Attendance
+                    </button>
+                    <div id="attendanceData" class="data-output"></div>
+                </article>
+
+                <article class="card upcoming">
+                    <div class="card-icon purple">03</div>
+                    <h3>Timetable</h3>
+                    <p>View your class schedule and upcoming sessions.</p>
+                    <span class="status">Coming soon</span>
+                </article>
+
+                <article class="card upcoming">
+                    <div class="card-icon orange">04</div>
+                    <h3>Marks & Grades</h3>
+                    <p>Keep track of your marks and academic performance.</p>
+                    <span class="status">Coming soon</span>
+                </article>
+
+            </div>
         </section>
+
+        <section class="notice">
+            <div class="notice-icon">✦</div>
+            <div>
+                <h3>Stay focused. Stay ahead.</h3>
+                <p>PortalX brings your academic information together in one place.</p>
+            </div>
+        </section>
+
     </main>
+
+    <footer>
+        <p><strong>PortalX</strong> · SRM AP Student Portal Alternative</p>
+        <p>Built for students, with students.</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
