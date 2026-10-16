@@ -1,6 +1,7 @@
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import parseTimetable from './services/parseTimetable.js';
 
 //fileURLToPath(import.meta.url) identifies the current file's path.
 //path.dirname(__filename) identifies the server directory.
@@ -33,6 +34,33 @@ app.get('/api/attendance',(req,res) => {
             "attendance": 64,
         }]
 });
+});
+
+app.get('/api/timetable', async (req, res) => {
+    try{
+    const html = `
+        <table>
+            <tr>
+                <td>Data Structures</td>
+                <td>9:00 AM</td>
+            </tr>
+            <tr>
+                <td>Mathematics</td>
+                <td>10:00 AM</td>
+            </tr>
+        </table>
+    `;
+
+    const timetable = parseTimetable(html);
+
+    res.json(timetable);
+    }
+    catch(error){
+        console.log("Failed to fetch the timetable: ", error.message);
+        res.status(500).json({
+            error: "Failed to load timetable"
+        });
+    }
 });
 
 app.listen(port, () => {
