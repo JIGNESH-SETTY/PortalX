@@ -9,20 +9,36 @@ function parseTimetable(html){
     $("tr").each(function () {
         const cells = $(this).find("td");
 
-        if (cells.length < 2) {
+        if (cells.length < 5) {
             return;
         }
         
-        const subject  = cells.eq(0).text().trim();
-        const time = cells.eq(1).text().trim();
+        const day = cells.eq(0).text().trim();
+        const subjectCode = cells.eq(1).text().trim();
+        const subject  = cells.eq(2).text().trim();
+        const time = cells.eq(3).text().trim();
+        const timeParts = time.split("-");
 
-        if(!subject || !time ){
-            return
+        //if the time contains only one element then the code below this i.e if case will handle the error
+        if(timeParts.length < 2){
+            return;
+        }
+        
+        const startTime = timeParts[0].trim();
+        const endTime = timeParts[1].trim();
+        const room = cells.eq(4).text().trim();
+
+        if(!day || !subject || !time ){
+            return;
         }
 
         const timetableEntry = {
+            day: day,
+            subjectCode: subjectCode,
             subject: subject,
-            time: time
+            startTime: startTime,
+            endTime: endTime,
+            room: room
         };
 
         timetable.push(timetableEntry);
