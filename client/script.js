@@ -11,48 +11,60 @@
    7. Navigation, reveal animation and events
    ========================================================= */
 
-/* ---------- 1. SAMPLE DATA ----------
-   No endpoints exist for these yet. When they do, swap each constant
-   for a fetchJson("/api/...") call. */
-const C = (code, block, room) => ({ code, block, room });
+/* ---------- 1. DATA SHAPE + SAMPLE DATA ----------
+   THE TIMETABLE CONTRACT. The UI draws whatever it receives in this shape,
+   so a student with 6 or 9 periods, or a Saturday with no classes, just works.
+   Your Cheerio parser (see parseTimetable.example.js) should produce exactly this:
 
-const SAMPLE_PERIODS = [
-  { start: "09:00", end: "09:50" },
-  { start: "10:00", end: "10:50" },
-  { start: "11:00", end: "11:50" },
-  { start: "12:00", end: "13:00", isBreak: true },
-  { start: "13:00", end: "13:50" },
-  { start: "14:00", end: "14:50" },
-  { start: "15:00", end: "15:50" },
+   {
+     periods:  [ { label: "1", start: "09:00", end: "09:50" }, ... ],   // 24-hour "HH:MM"
+     days:     [ { name: "Monday",
+                   slots: [ { code: "CSE 101", subjectName: "DATA STRUCTURES", location: "S 404" } | null, ... ] } ],
+                 // slots[i] belongs to periods[i]; null = free period
+     subjects: [ { code: "CSE 101", name: "DATA STRUCTURES", ltpc: "3-0-1-4",
+                   faculty: [ { name: "Dr. A", id: "12345" } ], rooms: ["S 404"] } ]
+   }
+
+   Everything below is made-up SAMPLE data in that shape (isSample: true). */
+const SAMPLE_SUBJECTS = [
+  { code: "CSE 101", name: "DATA STRUCTURES", ltpc: "3-0-1-4", faculty: [{ name: "Dr. Sample One", id: "00001" }], rooms: ["S 404", "C 201"] },
+  { code: "CSE 102", name: "OPERATING SYSTEMS", ltpc: "3-0-1-4", faculty: [{ name: "Dr. Sample Two", id: "00002" }, { name: "Mr. Sample Three", id: "00003" }], rooms: ["S 404"] },
+  { code: "CSE 103", name: "COMPUTER NETWORKS", ltpc: "3-0-0-3", faculty: [{ name: "Dr. Sample Four", id: "00004" }], rooms: ["C 305"] },
+  { code: "MAT 101", name: "LINEAR ALGEBRA", ltpc: "3-0-0-3", faculty: [{ name: "Dr. Sample Five", id: "00005" }], rooms: ["S 404"] },
+  { code: "SEC 101", name: "COMMUNICATION SKILLS", ltpc: "1-0-1-2", faculty: [{ name: "Ms. Sample Six", id: "00006" }], rooms: ["S 404"] },
 ];
 
-// One entry per period (null = free). The lunch slot is always null.
-const SAMPLE_WEEK = {
-  Monday:    [C("CSE201", "AB1", "204"), C("MAT203", "AB2", "101"), null, null, C("CSE203", "AB1", "LAB-3"), C("CSE203", "AB1", "LAB-3"), C("HUM201", "AB3", "110")],
-  Tuesday:   [C("MAT203", "AB2", "101"), C("CSE205", "AB1", "208"), C("CSE201", "AB1", "204"), null, null, C("HUM201", "AB3", "110"), null],
-  Wednesday: [C("CSE203", "AB1", "206"), null, C("CSE205", "AB1", "208"), null, C("CSE201", "AB1", "LAB-1"), C("CSE201", "AB1", "LAB-1"), null],
-  Thursday:  [C("CSE205", "AB1", "208"), C("CSE203", "AB1", "206"), C("MAT203", "AB2", "101"), null, null, null, C("HUM201", "AB3", "110")],
-  Friday:    [C("CSE201", "AB1", "204"), C("CSE205", "AB1", "208"), null, null, C("MAT203", "AB2", "101"), null, null],
+const slot = (code, location) => ({ code, subjectName: SAMPLE_SUBJECTS.find((x) => x.code === code).name, location });
+
+const SAMPLE_TIMETABLE = {
+  isSample: true,
+  periods: [
+    { label: "1", start: "09:00", end: "09:50" }, { label: "2", start: "10:00", end: "10:50" },
+    { label: "3", start: "11:00", end: "11:50" }, { label: "4", start: "12:00", end: "12:50" },
+    { label: "5", start: "13:00", end: "13:50" }, { label: "6", start: "14:00", end: "14:50" },
+    { label: "7", start: "15:00", end: "15:50" }, { label: "8", start: "16:00", end: "17:30" },
+  ],
+  days: [
+    { name: "Monday",    slots: [slot("CSE 101", "S 404"), slot("MAT 101", "S 404"), slot("MAT 101", "S 404"), null, null, slot("CSE 102", "C 201"), slot("CSE 102", "C 201"), slot("CSE 103", "C 305")] },
+    { name: "Tuesday",   slots: [slot("CSE 103", "C 305"), slot("CSE 103", "C 305"), slot("CSE 102", "S 404"), slot("CSE 102", "S 404"), null, null, slot("CSE 101", "S 404"), null] },
+    { name: "Wednesday", slots: [slot("MAT 101", "S 404"), null, slot("CSE 101", "S 404"), slot("CSE 101", "S 404"), null, slot("SEC 101", "S 404"), null, null] },
+    { name: "Thursday",  slots: [null, null, slot("CSE 102", "S 404"), slot("CSE 102", "S 404"), null, slot("CSE 103", "S 404"), slot("CSE 101", "C 201"), slot("CSE 101", "C 201")] },
+    { name: "Friday",    slots: [slot("MAT 101", "S 404"), slot("MAT 101", "S 404"), slot("CSE 103", "S 404"), slot("CSE 103", "S 404"), null, null, slot("SEC 101", "S 404"), slot("SEC 101", "S 404")] },
+    { name: "Saturday",  slots: [null, null, null, null, null, null, null, null] },
+  ],
+  subjects: SAMPLE_SUBJECTS,
 };
 
-const SAMPLE_COURSES = [
-  { name: "Data Structures", code: "CSE201", credits: 4 },
-  { name: "Discrete Mathematics", code: "MAT203", credits: 3 },
-  { name: "Database Management Systems", code: "CSE203", credits: 4 },
-  { name: "Computer Organization", code: "CSE205", credits: 3 },
-  { name: "Technical Communication", code: "HUM201", credits: 2 },
-];
-
 const SAMPLE_MARKS = [
-  { code: "CSE201", assessments: [{ name: "Quiz 1", got: 8, max: 10 }, { name: "Mid-term 1", got: 21, max: 25 }] },
-  { code: "MAT203", assessments: [{ name: "Quiz 1", got: 7, max: 10 }, { name: "Mid-term 1", got: 18, max: 25 }] },
+  { code: "CSE 101", assessments: [{ name: "Quiz 1", got: 8, max: 10 }, { name: "Mid-term 1", got: 21, max: 25 }] },
+  { code: "MAT 101", assessments: [{ name: "Quiz 1", got: 7, max: 10 }, { name: "Mid-term 1", got: 18, max: 25 }] },
 ];
 
 const SAMPLE_RESULTS = {
   cgpa: 8.4,
   semesters: [
-    { name: "Semester 1", sgpa: 8.2, subjects: [{ code: "CSE101", name: "Programming Basics", grade: "A" }, { code: "MAT101", name: "Calculus", grade: "B+" }] },
-    { name: "Semester 2", sgpa: 8.6, subjects: [{ code: "CSE102", name: "Object Oriented Programming", grade: "A+" }, { code: "PHY101", name: "Physics", grade: "A" }] },
+    { name: "Semester 1", sgpa: 8.2, subjects: [{ code: "CSE 001", name: "Programming Basics", grade: "A" }, { code: "MAT 001", name: "Calculus", grade: "B+" }] },
+    { name: "Semester 2", sgpa: 8.6, subjects: [{ code: "CSE 002", name: "Object Oriented Programming", grade: "A+" }, { code: "PHY 001", name: "Physics", grade: "A" }] },
   ],
 };
 
@@ -96,16 +108,25 @@ function statusOf(period) {
 }
 
 function courseName(code) {
-  const course = SAMPLE_COURSES.find((c) => c.code === code);
-  return course ? course.name : code;
+  const subject = timetable && timetable.subjects.find((x) => x.code === code);
+  return subject ? subject.name : code;
 }
 
-// Turns one period + class into the text every timetable widget shows.
+// The portal writes locations like "S 404". We read that as block "S", room "404".
+// If your campus uses another pattern, change only this function.
+function splitLocation(location) {
+  const match = /^(\S+)\s+(.+)$/.exec(location || "");
+  return match ? { block: match[1], room: match[2] } : { block: "", room: location || "" };
+}
+
+// Turns one period + slot into the text every timetable widget shows.
 function describe(period, entry) {
   const time = `${period.start} to ${period.end}`;
-  if (period.isBreak) return { time, title: "Lunch break", sub: "Time to recharge", kind: "rest" };
+  if (period.isBreak) return { time, title: "Break", sub: "Time to recharge", kind: "rest" };
   if (!entry) return { time, title: "Free period", sub: "No class scheduled", kind: "free" };
-  return { time, title: entry.code, sub: courseName(entry.code), place: `Block ${entry.block}, Room ${entry.room}`, kind: "class" };
+  const { block, room } = splitLocation(entry.location);
+  const place = block ? `Block ${block}, Room ${room}` : room ? `Room ${room}` : "";
+  return { time, title: entry.code, sub: entry.subjectName || courseName(entry.code), place, kind: "class" };
 }
 
 /* ---------- 3. API LAYER ---------- */
@@ -151,6 +172,78 @@ function loadAttendance() {
   }
   return attendanceRequest;
 }
+
+let timetable = null;          // filled by initTimetable(); null means "unavailable"
+let timetableReady = Promise.resolve();
+
+// "01:00" -> "13:00". The portal prints 12-hour times without AM/PM, so hours before 8 are afternoon.
+function to24Hour(text) {
+  const [hours, minutes] = String(text).trim().split(":").map(Number);
+  return `${String(hours < 8 ? hours + 12 : hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+// Checks the data and tidies it, so the rest of the page can trust it.
+// It is forgiving on purpose. Accepted variations:
+//   period: { start, end }  OR  { time: "09:00 To 09:50" }   (12-hour times like "01:00" are fixed automatically)
+//   day:    { name } or { day }
+//   slot:   { code, subjectName | title | name, location | room }, or null / empty for a free period
+//           (code may also be written "CSE 213(S 404)", the "(...)" part becomes the location)
+//   subject: faculty and rooms can be an array or a single string
+function normalizeTimetable(raw) {
+  if (!raw || !Array.isArray(raw.periods) || !Array.isArray(raw.days)) throw new Error("Unexpected timetable data");
+  const toList = (value) => (Array.isArray(value) ? value : value ? [value] : []);
+
+  const periods = raw.periods.map((p, i) => {
+    const [start, end] = p.start && p.end ? [p.start, p.end] : String(p.time || "").split(/\bto\b/i);
+    if (!/^\s*\d{1,2}:\d{2}\s*$/.test(start || "") || !/^\s*\d{1,2}:\d{2}\s*$/.test(end || "")) {
+      throw new Error(`Timetable period ${i + 1} needs a start and end time like "09:00"`);
+    }
+    return { label: String(p.label ?? i + 1), start: to24Hour(start), end: to24Hour(end) };
+  });
+
+  const days = raw.days.map((d) => ({
+    name: String(d.name ?? d.day),
+    slots: periods.map((period, i) => {
+      const cell = Array.isArray(d.slots) ? d.slots[i] : null; // missing cells become free periods
+      if (!cell || !String(cell.code || "").trim()) return null;
+      const match = /^(.*?)\s*\((.+)\)\s*$/.exec(String(cell.code).trim()); // "CSE 213(S 404)"
+      return {
+        code: match ? match[1].trim() : String(cell.code).trim(),
+        subjectName: String(cell.subjectName ?? cell.title ?? cell.name ?? "").trim(),
+        location: String(cell.location ?? cell.room ?? (match ? match[2] : "")).trim(),
+      };
+    }),
+  }));
+
+  const subjects = toList(raw.subjects).map((s) => ({
+    code: s.code,
+    name: s.name,
+    ltpc: s.ltpc,
+    faculty: toList(s.faculty).map((f) => (typeof f === "string" ? { name: f } : f)),
+    rooms: toList(s.rooms),
+  }));
+
+  return { isSample: Boolean(raw.isSample), periods, days, subjects };
+}
+
+/* THE ONE PLACE TO CONNECT YOUR BACKEND.
+   Once your server returns the Cheerio output as JSON, replace the body with:
+     const raw = await fetchJson("/api/timetable");
+     return normalizeTimetable(raw);
+   Nothing else in this file needs to change. */
+
+async function loadTimetable() {
+  const response = await fetch("/api/timetable");
+
+  if (!response.ok) {
+    throw new Error("Failed to load timetable from the server");
+  }
+
+  const data = await response.json();
+
+  return normalizeTimetable(data);
+}
+
 
 /* ---------- 4. LOGIN (PROTOTYPE) ----------
    This does NOT authenticate anyone. Replace the body of signIn() with a
@@ -242,7 +335,7 @@ function renderHome() {
   $("home-grid").replaceChildren(
     attendance, nextTile,
     makeTile("marks", "Internal marks", `${SAMPLE_MARKS.length} subjects`, "Sample data"),
-    makeTile("courses", "Courses", `${SAMPLE_COURSES.length}`, "Sample data"),
+    makeTile("courses", "Courses", timetable ? `${timetable.subjects.length}` : "--", timetable && !timetable.isSample ? "This semester" : "Sample data"),
     makeTile("results", "CGPA", SAMPLE_RESULTS.cgpa.toFixed(2), "Sample data"),
     profileTile
   );
@@ -289,14 +382,22 @@ async function renderAttendance() {
 }
 
 function renderCourses() {
-  const rows = SAMPLE_COURSES.map((c) => {
+  const body = $("courses-body");
+  if (!timetable) { showMessage(body, "Courses are unavailable right now. Please try again later.", true); return; }
+  if (timetable.subjects.length === 0) { showMessage(body, "No courses found for this semester."); return; }
+  const rows = timetable.subjects.map((subject) => {
     const left = el("div");
-    left.append(el("strong", "", c.name), el("p", "code-tag", c.code));
+    left.append(el("strong", "", orNotAvailable(subject.name)), el("p", "code-tag", `${orNotAvailable(subject.code)}, L-T-P-C ${orNotAvailable(subject.ltpc)}`));
+    const faculty = (subject.faculty || []).map((f) => f.name).join(", ");
+    if (faculty) left.appendChild(el("p", "code-tag", faculty));
+    if ((subject.rooms || []).length) left.appendChild(el("p", "code-tag", `Rooms: ${subject.rooms.join(", ")}`));
+    const credits = Number(String(subject.ltpc || "").split("-").pop());
     const row = el("div", "item");
-    row.append(left, el("span", "muted", `${c.credits} credits`));
+    row.appendChild(left);
+    if (Number.isFinite(credits) && credits > 0) row.appendChild(el("span", "muted", `${credits} credits`)); // credits = last number of L-T-P-C
     return row;
   });
-  $("courses-body").replaceChildren(...rows);
+  body.replaceChildren(...rows);
 }
 
 function renderMarks() {
@@ -351,44 +452,75 @@ function renderResults() {
 }
 
 /* ---------- 6. TIMETABLE ---------- */
-// Today's periods with their status, or null on days without classes.
-function todayItems() {
-  const classes = SAMPLE_WEEK[todayName()];
-  if (!classes) return null;
-  return SAMPLE_PERIODS.map((period, i) => ({ period, entry: classes[i], status: statusOf(period), desc: describe(period, classes[i]) }));
+function findDay(name) {
+  return timetable ? timetable.days.find((d) => d.name.toLowerCase() === name.toLowerCase()) : undefined;
 }
 
-/* Day tabs: today is selected automatically (Monday on weekends). */
-let selectedDay = SAMPLE_WEEK[todayName()] ? todayName() : "Monday";
+function dayHasClasses(day) {
+  return day.slots.some(Boolean);
+}
+
+// Turns one day into an ordered list of items (classes, free periods and breaks).
+// A gap of 20+ minutes between two periods is shown as a break.
+function buildSchedule(day) {
+  const items = [];
+  timetable.periods.forEach((period, i) => {
+    const previous = timetable.periods[i - 1];
+    if (previous && toMinutes(period.start) - toMinutes(previous.end) >= 20) {
+      items.push({ period: { start: previous.end, end: period.start, isBreak: true }, entry: null });
+    }
+    items.push({ period, entry: day.slots[i] });
+  });
+  return items.map((item) => ({ ...item, status: statusOf(item.period), desc: describe(item.period, item.entry) }));
+}
+
+// Today's items, or null on days without classes (or when data is unavailable).
+function todayItems() {
+  const day = findDay(todayName());
+  return day && dayHasClasses(day) ? buildSchedule(day) : null;
+}
+
+/* Day tabs: today is selected automatically; otherwise the first day that has classes. */
+let selectedDay = "";
 
 function renderDayTabs() {
-  const tabs = Object.keys(SAMPLE_WEEK).map((day) => {
-    const button = el("button", day === todayName() ? "today" : "", day.slice(0, 3));
+  if (!timetable) { $("day-tabs").replaceChildren(); return; }
+  const tabs = timetable.days.map((day) => {
+    const isToday = day.name.toLowerCase() === todayName().toLowerCase();
+    const button = el("button", isToday ? "today" : "", day.name.slice(0, 3));
     button.type = "button";
     button.setAttribute("role", "tab");
-    button.setAttribute("aria-selected", String(day === selectedDay));
-    button.setAttribute("aria-label", day);
-    button.addEventListener("click", () => { selectedDay = day; renderDayTabs(); renderDayPanel(); });
+    button.setAttribute("aria-selected", String(day.name === selectedDay));
+    button.setAttribute("aria-label", day.name);
+    button.addEventListener("click", () => { selectedDay = day.name; renderDayTabs(); renderDayPanel(); });
     return button;
   });
   $("day-tabs").replaceChildren(...tabs);
 }
 
 function renderDayPanel() {
-  const isToday = selectedDay === todayName();
-  const rows = SAMPLE_PERIODS.map((period, i) => {
-    const d = describe(period, SAMPLE_WEEK[selectedDay][i]);
-    const status = isToday ? statusOf(period) : "";
-    const card = el("div", `daycard ${d.kind} ${status}`);
+  const panel = $("day-panel");
+  if (!timetable) { showMessage(panel, "Timetable is unavailable right now. Please try again later.", true); return; }
+  const day = findDay(selectedDay);
+  if (!day) { showMessage(panel, "No timetable days to show."); return; }
+  const isToday = day.name.toLowerCase() === todayName().toLowerCase();
+  const today = findDay(todayName());
+  const notes = [];
+  if (!isToday && !(today && dayHasClasses(today))) notes.push(el("p", "msg", `No classes today. Showing ${day.name}.`));
+  if (!dayHasClasses(day)) { panel.replaceChildren(...notes, el("p", "msg", `No classes on ${day.name}.`)); return; }
+
+  const rows = buildSchedule(day).map((item, i) => {
+    const d = item.desc;
+    const card = el("div", `daycard ${d.kind} ${isToday ? item.status : ""}`);
     card.append(el("strong", "", d.title), el("p", "", d.place ? `${d.sub}, ${d.place}` : d.sub));
     const row = el("div", "dayrow rise");
     row.style.setProperty("--i", i);
-    row.append(el("time", "", `${period.start}\n${period.end}`), card);
-    row.firstChild.style.whiteSpace = "pre-line";
+    const time = el("time", "", `${item.period.start}\n${item.period.end}`);
+    time.style.whiteSpace = "pre-line";
+    row.append(time, card);
     return row;
   });
-  const note = SAMPLE_WEEK[todayName()] ? [] : [el("p", "msg", "No classes on weekends. Showing Monday.")];
-  $("day-panel").replaceChildren(...note, ...rows);
+  panel.replaceChildren(...notes, ...rows);
 }
 
 /* The class wheel.
@@ -456,7 +588,8 @@ function renderRing() {
   if (!items) {
     ringItems = []; ringNodes = [];
     stage.replaceChildren();
-    $("ring-readout").replaceChildren(el("strong", "", "No classes today"), el("span", "muted", "Enjoy the day off."));
+    const message = timetable ? ["No classes today", "Enjoy the day off."] : ["Timetable unavailable", "Please try again later."];
+    $("ring-readout").replaceChildren(el("strong", "", message[0]), el("span", "muted", message[1]));
     return;
   }
   ringItems = items;
@@ -667,6 +800,7 @@ function setupLogin() {
     if (errors.id || errors.pw) return;
 
     await signIn($("student-id").value, passwordInput.value);
+    await timetableReady; // make sure the timetable has loaded before any screen needs it
     passwordInput.value = ""; // never keep the password around
     $("login-view").hidden = true;
     $("landing").hidden = false;
@@ -711,15 +845,30 @@ function setupApp() {
   });
 }
 
+async function initTimetable() {
+  try {
+    timetable = await loadTimetable();
+  } catch (error) {
+    console.error("Timetable error:", error);
+    timetable = null;
+  }
+  // The "Sample data" badges only show while the sample timetable is in use.
+  document.querySelectorAll(".sample-only").forEach((badge) => { badge.hidden = !(timetable && timetable.isSample); });
+  const today = timetable && findDay(todayName());
+  const firstBusyDay = timetable && timetable.days.find(dayHasClasses);
+  selectedDay = today && dayHasClasses(today) ? today.name : firstBusyDay ? firstBusyDay.name : "";
+  renderDayTabs();
+  renderCourses();
+  renderMarks();
+}
+
 function init() {
   setupLogin();
   setupApp();
   setupRing();
   setupSwipe();
-  renderDayTabs();
-  renderCourses();
-  renderMarks();
   renderResults();
+  timetableReady = initTimetable();
   // One timer: every minute, refresh the wheel and today's list so "current class" stays correct.
   setInterval(() => {
     if (!$("view-timetable").hidden) { renderRing(); renderDayPanel(); }

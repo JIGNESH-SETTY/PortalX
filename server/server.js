@@ -1,6 +1,7 @@
 import axios from 'axios'
 import express from 'express'
-import path from 'path'
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'url'
 import parseTimetable from './services/parseTimetable.js';
 
@@ -37,26 +38,28 @@ app.get('/api/attendance',(req,res) => {
 });
 });
 
-
 app.get('/api/timetable', async (req, res) => {
     try {
-        const response = await axios.get(
-            'http://localhost:3000/mock-timetable.html'
+        // Read the saved HTML directly from the server folder.
+        const html = await fs.readFile(
+            path.join(__dirname, 'timetable.html'),
+            'utf8'
         );
 
-        const html = response.data;
-
+        // Convert the HTML into structured timetable data.
         const timetable = parseTimetable(html);
 
+        // Send the result to the frontend as JSON.
         res.json(timetable);
     } catch (error) {
-        console.error('Failed to load timetable:', error.message);
+        console.error('Error loading timetable:', error);
 
         res.status(500).json({
-            error: 'Failed to load timetable'
+            message: 'Failed to load timetable'
         });
     }
 });
+
 
 
 app.listen(port, () => {
