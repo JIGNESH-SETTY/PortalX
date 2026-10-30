@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Test coverage & artifacts
+coverage/
+.nyc_output/
+
+

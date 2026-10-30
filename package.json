@@ -1,0 +1,38 @@
+{
+  "name": "portalx-backend",
+  "version": "1.0.0",
+  "description": "PortalX - Alternative Student Portal Backend for SRM University-AP",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "srmap",
+    "student-portal",
+    "portalx",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-tflite": "^0.0.1-alpha.10",
+    "axios": "^1.7.9",
+    "axios-cookiejar-support": "^5.0.5",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.0.1",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "jimp": "^1.6.1",
+    "sharp": "^0.35.5",
+    "tesseract.js": "^7.0.0",
+    "tough-cookie": "^5.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
