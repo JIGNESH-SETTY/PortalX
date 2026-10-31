@@ -318,10 +318,12 @@
       color: var(--ink2);
       text-decoration: none;
       font: 800 13px var(--fd);
-      transition: flex .3s
+      transition: flex .35s cubic-bezier(0.25, 1, 0.4, 1), background-color .25s ease, color .2s ease, transform .15s ease; will-change: flex
     }
 
+    .bottom a:active { transform: scale(0.96); }
     .bottom a span {
+      transition: opacity .2s ease;
       display: none
     }
 
@@ -333,6 +335,18 @@
 
     .bottom a[aria-current] span {
       display: inline
+    }
+
+    
+    #view {
+      will-change: transform, opacity;
+    }
+    #view.anim-in {
+      animation: viewSlide .26s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes viewSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .hero {
@@ -853,6 +867,43 @@
       white-space: nowrap;
       text-align: right
     }
+
+    
+    /* ===== Attendance rectangle rows ===== */
+    [data-tier="r"] { --tc: var(--bad); }
+    [data-tier="y"] { --tc: var(--amber); }
+    [data-tier="g"] { --tc: var(--ok); }
+    .attbox {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-radius: 18px;
+      padding: 17px 18px 17px 22px;
+      margin: 10px 0;
+      cursor: pointer;
+      list-style: none;
+      overflow: hidden;
+      background: linear-gradient(100deg, color-mix(in srgb, var(--tc) 26%, var(--card)) 0%, color-mix(in srgb, var(--tc) 6%, var(--card)) 60%, var(--card) 100%);
+      box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tc) 38%, var(--line));
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .attbox:active { transform: scale(.985); }
+    .attbox:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tc); }
+    .attL { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .attL .code { font: 800 12px var(--fh); letter-spacing: .04em; color: var(--tc); }
+    .attL .nm { font: 700 14.5px/1.25 var(--fd); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; }
+    .attR { display: flex; align-items: center; gap: 10px; flex: none; }
+    .attR .pct { font: 800 25px var(--fd); letter-spacing: -.04em; color: var(--tc); }
+    .attR .chev { width: 18px; height: 18px; color: var(--tc); opacity: .7; transition: transform .25s cubic-bezier(0.2, 0.9, 0.2, 1); }
+    details[open] .attR .chev { transform: rotate(180deg); }
+    .attlegend { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 4px 10px; }
+    .attlegend span { display: flex; align-items: center; gap: 6px; font: 700 11.5px var(--fh); color: var(--ink2); }
+    .attlegend i { width: 10px; height: 10px; border-radius: 3px; }
+    .attlegend i.r { background: var(--bad); }
+    .attlegend i.y { background: var(--amber); }
+    .attlegend i.g { background: var(--ok); }
 
     .facts {
       display: grid;
@@ -1855,8 +1906,8 @@
         <div class="lg-left">
           <div class="hero lg-hero">
             <small>Student Portal</small>
-            <h1>Welcome to SRM University, AP</h1>
-            <div class="sub2">Andhra Pradesh</div>
+            <h1>Welcome to PortalX</h1>
+            <div class="sub2">Alternative portal for SRM AP portal</div>
             <div class="nx"><small>Sign in with</small><b>Register Number</b>
               <p>Enter your Register Number (AP followed by 11 or 12 digits) and your password.</p>
             </div>
@@ -1903,7 +1954,7 @@
           <div class="lg-bar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
               <path d="M9 12l2 2 4-4" />
-            </svg>Portal for Freshers and Senior Students</div>
+            </svg>Welcome to PortalX — Alternative portal for SRM AP portal</div>
           <div class="lg-f" id="fId"><label for="regNo">Application Number / Register Number</label>
             <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" maxlength="14"
                 autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false"
@@ -1927,7 +1978,7 @@
           <div class="lg-msg" id="lgMsg" role="alert"></div>
           <button class="go" id="loginBtn" type="submit"><span class="sp"></span><span
               id="loginTxt">Login</span></button>
-          <div class="lg-forgot"><button type="button" class="lnk" id="forgot">Forgot Password</button></div>
+          
           <div class="first">If you are a Student and this is your first login, you must use your <b>Register Number /
               Application Number</b> as your User ID, with your date of birth [Format ddmmyyyy E.g. <b>13122007</b>] as
             the password.</div>
@@ -1938,16 +1989,7 @@
           id="terms">Terms and Conditions</button></div>
     </div>
   </section>
-  <dialog class="sheet" id="dForgot">
-    <div class="in">
-      <div class="grab"></div>
-      <h3>Forgot your password?</h3>
-      <p>Your default password is your date of birth in <b>DDMMYYYY</b> format. If you changed it and can’t remember,
-        the IT helpdesk can reset it for you.</p><a class="go"
-        href="mailto:itkm.helpdesk@srmap.edu.in?subject=PortalX%20password%20help">Email IT helpdesk</a><button
-        class="alt" type="button" data-close>Close</button>
-    </div>
-  </dialog>
+  
   <dialog class="sheet" id="dTerms">
     <div class="in">
       <div class="grab"></div>
@@ -2250,9 +2292,10 @@
 
         return `<h1>Attendance</h1><p class="sub">${dateSub}</p>
   <div class="card"><div class="sumrow"><div class="ringbox">${ring(avg, "")}<b>${avg.toFixed(1)}%</b></div><div><h2>Average</h2><p class="muted">Across ${rows.length} subjects</p><p class="note">${sum(1)} classes · ${sum(2)} present · ${sum(3)} absent</p></div></div></div>
-  <div class="card" style="padding:6px 18px">${rows.map(r => {
+  <div class="attlegend"><span><i class="r"></i>Below 75%</span><span><i class="y"></i>75–79%</span><span><i class="g"></i>80% and above</span></div>
+  <div style="padding:0 2px">${rows.map(r => {
     const sName = nameOf(t.subjects, r[0]);
-    return `<details><summary class="row" style="--c:${col(r[0])}"><div class="mini">${ring(r[7], "")}<b>${Math.round(r[7])}</b></div><div><div class="code">${esc(r[0])}</div><div class="nm">${esc(sName || r[0])}</div></div><div class="big">${fmt(r[7])}%</div></summary><div class="facts" style="--c:${col(r[0])}"><div><b>${r[1]}</b><small>Conducted</small></div><div><b>${r[2]}</b><small>Present</small></div><div><b>${r[3]}</b><small>Absent</small></div><div><b>${r[4]}</b><small>OD/ML taken</small></div><div><b>${fmt(r[5])}%</b><small>Present</small></div><div><b>${fmt(r[6])}%</b><small>OD/ML approved</small></div></div></details>`;
+    return `<details><summary class="attbox" data-tier="${r[7] < 75 ? "r" : r[7] < 80 ? "y" : "g"}"><div class="attL"><div class="code">${esc(r[0])}</div><div class="nm">${esc(sName || r[0])}</div></div><div class="attR"><b class="pct">${fmt(r[7])}%</b><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div></summary><div class="facts" style="--c:${col(r[0])}"><div><b>${r[1]}</b><small>Conducted</small></div><div><b>${r[2]}</b><small>Present</small></div><div><b>${r[3]}</b><small>Absent</small></div><div><b>${r[4]}</b><small>OD/ML taken</small></div><div><b>${fmt(r[5])}%</b><small>Present</small></div><div><b>${fmt(r[6])}%</b><small>OD/ML approved</small></div></div></details>`;
   }).join("")}</div>
   <p class="note" style="margin:0 4px 14px">Tap a subject for the full breakdown. For any discrepancy, contact the course teacher.</p>
   <div class="card"><details class="n"><summary>How attendance is calculated</summary><p class="note">Attendance % = student present slots ÷ faculty-entered slots × 100.<br>OD/ML is allowed for at most 15% of scheduled slots in a course.<br>To consider OD/ML, keep at least 60% attendance in the course.<br>OD/ML % = OD/ML submitted ÷ total slots scheduled for the semester × 100.</p></details></div>`;
@@ -2332,14 +2375,34 @@
 
     /* ===== 4. ROUTER ===== */
     function buildNav(cur) {
-      $(".side").innerHTML = `<span class="brand">Portal<b>X</b></span>` + NAV.map(n => `<a href="#${n[0]}" ${n[0] === cur ? 'aria-current="page"' : ""}>${ic(n[0])}${n[1]}</a>`).join("");
-      $(".bottom").innerHTML = NAV.filter(n => n[0] !== "profile").map(n => `<a href="#${n[0]}" aria-label="${n[1]}" ${n[0] === cur ? 'aria-current="page"' : ""}>${ic(n[0])}<span>${n[2]}</span></a>`).join("");
+      const side = $(".side");
+      if (side) {
+        if (!side.children.length) {
+          side.innerHTML = `<span class="brand">Portal<b>X</b></span>` + NAV.map(n => `<a href="#${n[0]}">${ic(n[0])}${n[1]}</a>`).join("");
+        }
+        side.querySelectorAll("a").forEach(a => {
+          if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        });
+      }
+
+      const bottom = $(".bottom");
+      if (bottom) {
+        if (!bottom.children.length) {
+          bottom.innerHTML = NAV.filter(n => n[0] !== "profile").map(n => `<a href="#${n[0]}" aria-label="${n[1]}">${ic(n[0])}<span>${n[2]}</span></a>`).join("");
+        }
+        bottom.querySelectorAll("a").forEach(a => {
+          if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        });
+      }
     }
+
     async function route() {
       if (document.body.classList.contains("locked")) return;
       const key = (location.hash.slice(1) in pages) ? location.hash.slice(1) : "home", view = $("#view");
       buildNav(key); document.title = "PortalX · " + NAV.find(n => n[0] === key)[1]; scrollTo(0, 0); view.innerHTML = '<div class="skel">Loading…</div>';
-      try { const r = await pages[key](); if (typeof r === "string") view.innerHTML = r; else { view.innerHTML = r.html; r.after() } }
+      try { const r = await pages[key](); if (typeof r === "string") view.innerHTML = r; else { view.innerHTML = r.html; r.after() }; view.classList.remove("anim-in"); void view.offsetWidth; view.classList.add("anim-in"); }
       catch (e) { console.error(e); view.innerHTML = failBox(); $("#retry").onclick = route }
     }
     addEventListener("hashchange", route);
@@ -2366,7 +2429,7 @@
     $("#regNo").addEventListener("input", e => { e.target.value = e.target.value.replace(/\s/g, "").toUpperCase() });
     ["regNo", "pw"].forEach(id => $("#" + id).addEventListener("input", () => { $("#fId").classList.remove("bad"); $("#fPw").classList.remove("bad"); msg.textContent = "" }));
     $("#eye").onclick = e => { const b = e.currentTarget, p = $("#pw"), show = p.type === "password"; p.type = show ? "text" : "password"; b.classList.toggle("on", show); b.setAttribute("aria-label", show ? "Hide password" : "Show password") };
-    $("#forgot").onclick = () => $("#dForgot").showModal();
+    if ($("#forgot") && $("#dForgot")) $("#forgot").onclick = () => $("#dForgot").showModal();
     $("#terms").onclick = () => $("#dTerms").showModal();
     document.querySelectorAll("dialog.sheet").forEach(d => d.addEventListener("click", e => { if (e.target === d || e.target.hasAttribute("data-close")) d.close() }));
     document.querySelectorAll(".lg-tabs button").forEach(b => b.onclick = () => { document.querySelectorAll(".lg-tabs button").forEach(x => x.setAttribute("aria-selected", x === b)); document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === b.dataset.t)) });
