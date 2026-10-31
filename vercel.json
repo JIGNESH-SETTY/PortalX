@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://portalx-backend-9tlt.onrender.com/api/:path*"
+      "destination": " https://portalx-backend-x3my.onrender.com"
     }
   ]
 }
