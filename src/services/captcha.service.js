@@ -24,6 +24,9 @@
 
 import sharp from 'sharp';
 import { createWorker } from 'tesseract.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -59,8 +62,19 @@ async function getWorker() {
   if (_initPromise) return _initPromise;
 
   _initPromise = (async () => {
+    const tmpDir = os.tmpdir();
+    const tmpTrainedData = path.join(tmpDir, 'eng.traineddata');
+    if (!fs.existsSync(tmpTrainedData)) {
+      const localTrainedData = path.resolve('eng.traineddata');
+      if (fs.existsSync(localTrainedData)) {
+        try {
+          fs.copyFileSync(localTrainedData, tmpTrainedData);
+        } catch (_) {}
+      }
+    }
+
     const worker = await createWorker('eng', 1, {
-      // Suppress verbose Tesseract progress logs
+      cachePath: tmpDir,
       logger: () => {}
     });
 

@@ -1,5 +1,13 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{node_modules/tesseract.js-core/**,eng.traineddata}"
+    },
+    "src/app.js": {
+      "includeFiles": "{node_modules/tesseract.js-core/**,eng.traineddata}"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -7,4 +15,3 @@
     }
   ]
 }
-
