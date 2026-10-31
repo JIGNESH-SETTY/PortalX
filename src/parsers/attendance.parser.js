@@ -48,6 +48,8 @@ function parsePct(text) {
  */
 function isOdmlHeader(header) {
   if (!header || header.includes('code')) return false;
+  // If the header is primarily about present percentage (e.g. "present % p / (p+a+od)"), it is NOT OD
+  if (header.includes('present') && !header.includes('approved')) return false;
   return /\b(od|ml)\b/i.test(header) || header.includes('od/ml') || header.includes('od / ml') || header.includes('duty') || header.includes('medical');
 }
 
@@ -90,8 +92,8 @@ export function parseAttendanceHtml(html) {
   const $ = cheerio.load(html);
   const fullText = $.text();
 
-  // 1. Extract Date Range (e.g. "From : 03/Aug/2026 To : 27/Oct/2026")
-  const dateMatch = fullText.match(/From\s*[:\-]?\s*([0-9]{1,2}[/\-][A-Za-z0-9]{2,4}[/\-][0-9]{4})\s*To\s*[:\-]?\s*([0-9]{1,2}[/\-][A-Za-z0-9]{2,4}[/\-][0-9]{4})/i);
+  // 1. Extract Date Range (e.g. "During the Period  : 03/Aug/2026 To 30/Oct/2026" or "From : 03/Aug/2026 To : 27/Oct/2026")
+  const dateMatch = fullText.match(/(?:During the Period|From)\s*[:\-]?\s*([0-9]{1,2}[/\-][A-Za-z0-9]{2,4}[/\-][0-9]{4})\s*To\s*[:\-]?\s*([0-9]{1,2}[/\-][A-Za-z0-9]{2,4}[/\-][0-9]{4})/i);
   if (dateMatch) {
     result.from = dateMatch[1];
     result.to = dateMatch[2];
@@ -120,16 +122,63 @@ export function parseAttendanceHtml(html) {
   if (table.length > 0) {
     const allTrs = table.find('tr');
     if (allTrs.length >= 2) {
-      // Find header row
-      let headerRow = allTrs.first();
-      if (headerRow.find('th, td').length <= 2 && allTrs.length > 2) {
-        headerRow = allTrs.eq(1);
+      // Collect header rows (all trs preceding the first data row)
+      const headerTrs = [];
+      allTrs.each((_, tr) => {
+        const cells = $(tr).find('th, td');
+        if (cells.length === 0) return;
+        const c0 = clean($(cells[0]).text());
+        const c1 = clean($(cells[1]).text());
+        // If row begins with a course code or (sl.no + course code), data rows have started
+        if (isCourseCode(c0) || (cells.length > 1 && /^\d+$/.test(c0) && isCourseCode(c1))) {
+          return false;
+        }
+        const rowText = clean($(tr).text()).toLowerCase();
+        if (cells.length >= 2 && (rowText.includes('subject') || rowText.includes('code') || rowText.includes('conduct') || rowText.includes('present') || rowText.includes('absent') || rowText.includes('attendance') || rowText.includes('slot') || $(tr).find('th').length > 0)) {
+          headerTrs.push(tr);
+        }
+      });
+
+      if (headerTrs.length === 0) {
+        headerTrs.push(allTrs.first());
       }
 
-      const headers = [];
-      headerRow.find('th, td').each((_, cell) => {
-        headers.push(clean($(cell).text()).toLowerCase());
+      // Build 2D grid accounting for rowspan and colspan
+      const grid = [];
+      headerTrs.forEach((tr, rIdx) => {
+        if (!grid[rIdx]) grid[rIdx] = [];
+        let cIdx = 0;
+        $(tr).find('th, td').each((_, cell) => {
+          while (grid[rIdx][cIdx] !== undefined) {
+            cIdx++;
+          }
+          const text = clean($(cell).text()).toLowerCase();
+          const rowspan = parseInt($(cell).attr('rowspan') || '1', 10);
+          const colspan = parseInt($(cell).attr('colspan') || '1', 10);
+          for (let r = 0; r < rowspan; r++) {
+            const targetRow = rIdx + r;
+            if (!grid[targetRow]) grid[targetRow] = [];
+            for (let c = 0; c < colspan; c++) {
+              grid[targetRow][cIdx + c] = text;
+            }
+          }
+          cIdx += colspan;
+        });
       });
+
+      // Collapse grid columns into flat header strings per column position
+      const numCols = Math.max(...grid.map(row => row.length));
+      const headers = [];
+      for (let c = 0; c < numCols; c++) {
+        const parts = [];
+        for (let r = 0; r < grid.length; r++) {
+          const val = grid[r] && grid[r][c];
+          if (val && !parts.includes(val)) {
+            parts.push(val);
+          }
+        }
+        headers.push(parts.join(' '));
+      }
 
       // Match column indices by official SRM header names
       let codeIdx = headers.findIndex(h => h.includes('code'));
@@ -139,13 +188,14 @@ export function parseAttendanceHtml(html) {
       let absIdx = headers.findIndex(h => h.includes('absent') && !h.includes('%') && !h.includes('percent'));
       let odmlIdx = headers.findIndex(h => isOdmlHeader(h) && !h.includes('%') && !h.includes('percent'));
 
-      let presPctIdx = headers.findIndex(h => (h.includes('present') || h.includes('attended')) && (h.includes('%') || h.includes('percent')) && !h.includes('total'));
+      let presPctIdx = headers.findIndex(h => (h.includes('present') || h.includes('attended')) && (h.includes('%') || h.includes('percent')) && !h.includes('total') && !isOdmlHeader(h));
       let odmlPctIdx = headers.findIndex(h => isOdmlHeader(h) && (h.includes('%') || h.includes('percent')));
 
-      // Direct search for "Total Attendance Percentage" column (look from the right)
+      // Direct search for "Total Attendance Percentage" column (look from the right, STRICTLY excluding OD columns)
       let totalAttPctIdx = -1;
       for (let i = headers.length - 1; i >= 0; i--) {
         const h = headers[i];
+        if (isOdmlHeader(h) || i === presIdx || i === absIdx || i === odmlIdx || i === presPctIdx || i === odmlPctIdx) continue;
         if (h.includes('total attendance') || h.includes('total %') || h.includes('total att') || (h.includes('attendance') && (h.includes('%') || h.includes('percent')))) {
           totalAttPctIdx = i;
           break;
@@ -154,7 +204,8 @@ export function parseAttendanceHtml(html) {
       if (totalAttPctIdx === -1) {
         for (let i = headers.length - 1; i >= 0; i--) {
           const h = headers[i];
-          if ((h.includes('%') || h.includes('percent') || h === 'percentage') && i !== presPctIdx && i !== odmlPctIdx) {
+          if (isOdmlHeader(h) || i === presIdx || i === absIdx || i === odmlIdx || i === presPctIdx || i === odmlPctIdx) continue;
+          if (h.includes('%') || h.includes('percent') || h === 'percentage') {
             totalAttPctIdx = i;
             break;
           }
@@ -177,7 +228,7 @@ export function parseAttendanceHtml(html) {
           });
           return;
         }
-        if (rowText.includes('COURSE CODE')) {
+        if (rowText.includes('COURSE CODE') || rowText.includes('SUBJECT CODE')) {
           return;
         }
 
@@ -201,7 +252,7 @@ export function parseAttendanceHtml(html) {
         const cOd = odmlIdx !== -1 ? odmlIdx : baseOffset + 5;
         const cPresPct = presPctIdx !== -1 ? presPctIdx : baseOffset + 6;
         const cOdPct = odmlPctIdx !== -1 ? odmlPctIdx : baseOffset + 7;
-        const cTotalAttPct = totalAttPctIdx !== -1 ? totalAttPctIdx : (cells.length - 1);
+        const cTotalAttPct = totalAttPctIdx !== -1 ? totalAttPctIdx : -1;
 
         let conducted = cCond < cells.length ? parseNum($(cells[cCond]).text()) : null;
         let present = cPres < cells.length ? parseNum($(cells[cPres]).text()) : null;
@@ -217,22 +268,25 @@ export function parseAttendanceHtml(html) {
           absent = Math.max(0, conducted - (present + odml));
         }
 
-        // 1. Fetch exact Total Attendance Percentage from the portal column
-        let totalAttPct = cTotalAttPct < cells.length ? parsePct($(cells[cTotalAttPct]).text()) : null;
-        let presentPct = cPresPct < cells.length ? parsePct($(cells[cPresPct]).text()) : null;
-        let odmlPct = cOdPct < cells.length ? parsePct($(cells[cOdPct]).text()) : null;
+        // Percentage values — read directly from the portal columns
+        let presentPct = cPresPct !== -1 && cPresPct < cells.length ? parsePct($(cells[cPresPct]).text()) : null;
+        let odmlPct = cOdPct !== -1 && cOdPct < cells.length ? parsePct($(cells[cOdPct]).text()) : null;
+        let totalAttPct = (cTotalAttPct !== -1 && cTotalAttPct < cells.length)
+          ? parsePct($(cells[cTotalAttPct]).text())
+          : null;
 
-        // 2. If the column value was empty or unread, calculate: (total present + od approved) / total classes * 100
-        if (totalAttPct === null || totalAttPct === 0) {
-          totalAttPct = conducted > 0 ? Number((((present + odml) / conducted) * 100).toFixed(2)) : 0;
-        }
-
-        // Present % and OD % fallbacks
+        // Fallback: calculate from raw counts when column is absent
         if (presentPct === null) {
           presentPct = conducted > 0 ? Number(((present / conducted) * 100).toFixed(2)) : 0;
         }
         if (odmlPct === null) {
           odmlPct = conducted > 0 && odml > 0 ? Number(((odml / conducted) * 100).toFixed(2)) : 0;
+        }
+        if (totalAttPct === null) {
+          // No Total Attendance % column → (present + OD approved) / conducted × 100
+          totalAttPct = conducted > 0
+            ? Number((((present + odml) / conducted) * 100).toFixed(2))
+            : 0;
         }
 
         totalAttPct = Number(totalAttPct.toFixed(2));
@@ -271,6 +325,9 @@ export function parseAttendanceHtml(html) {
     const totalPresent = result.rows.reduce((sum, r) => sum + r[2], 0);
     const totalAbsent = result.rows.reduce((sum, r) => sum + r[3], 0);
     const totalOdml = result.rows.reduce((sum, r) => sum + r[4], 0);
+    const weightedPct = totalConducted > 0
+      ? Number((((totalPresent + totalOdml) / totalConducted) * 100).toFixed(2))
+      : 0;
     const avgPct = result.rows.reduce((sum, r) => sum + r[7], 0) / result.rows.length;
 
     result.summary = {
@@ -279,7 +336,7 @@ export function parseAttendanceHtml(html) {
       totalAbsent,
       totalOdml,
       averagePercentage: Number(avgPct.toFixed(2)),
-      officialPercentage: result.summary.officialPercentage ?? Number(avgPct.toFixed(2))
+      officialPercentage: result.summary.officialPercentage ?? weightedPct
     };
   }
 

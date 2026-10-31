@@ -12,8 +12,9 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
-# Test coverage & artifacts
+# Test coverage, fixtures & tests
 coverage/
 .nyc_output/
+tests/
 
 

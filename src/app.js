@@ -43,6 +43,12 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // Trust reverse proxy (Render, Railway, Vercel, Nginx, Cloudflare)
+  // Required so secure session cookies work over HTTPS behind cloud proxies
+  if (config.isProduction) {
+    app.set('trust proxy', 1);
+  }
+
   // 3. User Session Management
   // Provides HTTP-only, isolated PortalX user sessions
   app.use(
