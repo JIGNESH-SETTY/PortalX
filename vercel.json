@@ -1,17 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "{node_modules/tesseract.js-core/**,eng.traineddata}"
-    },
-    "src/app.js": {
-      "includeFiles": "{node_modules/tesseract.js-core/**,eng.traineddata}"
-    }
-  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "source": "/api/:path*",
+      "destination": "https://YOUR-RENDER-APP.onrender.com/api/:path*"
     }
   ]
 }
