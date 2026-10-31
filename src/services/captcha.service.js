@@ -144,6 +144,19 @@ class CaptchaService {
   }
 
   /**
+   * Pre-warm the Tesseract WASM worker on server boot
+   * so the first login does not incur WASM compilation latency.
+   */
+  async warmup() {
+    try {
+      await getWorker();
+      console.log('⚡ Captcha OCR worker pre-warmed and ready in memory.');
+    } catch (err) {
+      console.warn('[CaptchaService] Pre-warm notice:', err.message);
+    }
+  }
+
+  /**
    * Gracefully terminate the Tesseract worker and release WASM memory.
    * Call this during server shutdown.
    *

@@ -12,6 +12,9 @@ const server = app.listen(config.port, () => {
   console.log(`🔧 Environment:      ${config.nodeEnv}`);
   console.log(`🧪 Mock Fallback:    ${config.devMockFallback}`);
   console.log(`====================================================`);
+  
+  // Pre-warm the Tesseract OCR worker in the background
+  captchaService.warmup();
 });
 
 // Handle graceful shutdown
