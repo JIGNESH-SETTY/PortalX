@@ -2111,6 +2111,91 @@
         } catch (err) {
           return { ok: false, mock: false, message: err.message || 'Network error submitting attendance code.' };
         }
+      },
+
+      /**
+       * Retrieve active friends registered for group attendance.
+       * @returns {Promise<Array<{studentId: string, addedAt: number}>>}
+       */
+      async getFriends() {
+        try {
+          const res = await fetch('/api/mark-attendance/friends', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!res.ok) return [];
+          const json = await res.json().catch(() => ({}));
+          return Array.isArray(json.data) ? json.data : [];
+        } catch {
+          return [];
+        }
+      },
+
+      /**
+       * Add a friend to the primary user's group attendance pool.
+       * @param {string} friendRegId - Register number of the friend (e.g. AP25110010808)
+       * @param {string} password - Friend's account password
+       * @returns {Promise<{ok: boolean, regId: string, message: string}>}
+       */
+      async addFriend(friendRegId, password) {
+        const res = await fetch('/api/mark-attendance/add-friend', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ regId: friendRegId, password })
+        });
+        const json = await res.json().catch(() => ({ ok: false, message: 'Failed to add friend' }));
+        if (!res.ok || !json.ok) {
+          throw new Error(json.message || `Failed to add friend (Status ${res.status})`);
+        }
+        return json;
+      },
+
+      /**
+       * Remove a friend from the group attendance pool.
+       * @param {string} studentId - Register number of the friend to remove
+       * @returns {Promise<{ok: boolean, message?: string}>}
+       */
+      async removeFriend(studentId) {
+        try {
+          const res = await fetch('/api/mark-attendance/remove-friend', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ studentId })
+          });
+          return await res.json().catch(() => ({ ok: false }));
+        } catch (e) {
+          return { ok: false, message: e.message };
+        }
+      },
+
+      /**
+       * Submit attendance code for both primary user and all registered group friends.
+       * @param {string} code - 7-character attendance code
+       * @returns {Promise<{ok: boolean, data: Array<any>, message: string}>}
+       */
+      async submitGroupAttendance(code) {
+        try {
+          const res = await fetch('/api/mark-attendance/submit-group', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ code })
+          });
+          const json = await res.json().catch(() => ({ ok: false, message: 'Group submission failed' }));
+          return {
+            ok: Boolean(json.ok),
+            data: json.data || [],
+            message: json.message || (json.ok ? 'Attendance marked for all members.' : 'Failed to mark attendance for some members.')
+          };
+        } catch (err) {
+          return {
+            ok: false,
+            data: [],
+            message: err.message || 'Network error submitting group attendance.'
+          };
+        }
       }
     };
 
@@ -2403,7 +2488,8 @@
   </div>`,
 
           after() {
-            /** Maximum allowed friend accounts for group attendance */
+            try {
+              /** Maximum allowed friend accounts for group attendance */
             const MAX_FRIENDS = 4;
 
             /** In-memory array of active friends registered for this session */
@@ -2619,46 +2705,54 @@
                 mainMsg.textContent = `Processing group submission (${totalStudents} accounts)…`;
                 if (groupResults) groupResults.innerHTML = '<div class="skel" style="padding:16px">Marking attendance sequentially…</div>';
 
-                const response = await api.submitGroupAttendance(code);
+                try {
+                  const response = await api.submitGroupAttendance(code);
 
-                btnSubmitCode.disabled = false;
-                btnSubmitCode.textContent = "Submit Group Attendance";
+                  mainMsg.className = "msg " + (response.ok ? "ok" : "bad");
+                  mainMsg.textContent = response.message || (response.ok ? "Attendance marked for all members." : "Completed with some notices.");
 
-                mainMsg.className = "msg " + (response.ok ? "ok" : "bad");
-                mainMsg.textContent = response.message || (response.ok ? "Attendance marked for all members." : "Completed with some notices.");
-
-                // Render per-student breakdown cards
-                if (groupResults && Array.isArray(response.data) && response.data.length > 0) {
-                  groupResults.innerHTML = `
-                    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-                      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:2px">Submission Results:</div>
-                      ${response.data.map(item => {
-                        const isSuccess = item.ok;
-                        const statusColor = isSuccess ? "var(--ok)" : "var(--bad)";
-                        const statusIcon = isSuccess ? "✅" : "❌";
-                        const label = item.isPrimary ? `${esc(item.studentId)} (You)` : `${esc(item.studentId)} (Friend)`;
-                        return `
-                          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:color-mix(in srgb, ${statusColor} 10%, var(--card));border-left:4px solid ${statusColor}">
-                            <div>
-                              <b style="font-size:13.5px;font-family:var(--fd)">${label}</b>
-                              <div style="font-size:12px;color:var(--ink2)">${esc(item.message || (isSuccess ? "Attendance recorded" : "Not accepted"))}</div>
+                  // Render per-student breakdown cards
+                  if (groupResults && Array.isArray(response.data) && response.data.length > 0) {
+                    groupResults.innerHTML = `
+                      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+                        <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:2px">Submission Results:</div>
+                        ${response.data.map(item => {
+                          const isSuccess = item.ok;
+                          const statusColor = isSuccess ? "var(--ok)" : "var(--bad)";
+                          const statusIcon = isSuccess ? "✅" : "❌";
+                          const label = item.isPrimary ? `${esc(item.studentId)} (You)` : `${esc(item.studentId)} (Friend)`;
+                          return `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:color-mix(in srgb, ${statusColor} 10%, var(--card));border-left:4px solid ${statusColor}">
+                              <div>
+                                <b style="font-size:13.5px;font-family:var(--fd)">${label}</b>
+                                <div style="font-size:12px;color:var(--ink2)">${esc(item.message || (isSuccess ? "Attendance recorded" : "Not accepted"))}</div>
+                              </div>
+                              <span class="pill ${isSuccess ? 'now' : 'done'}" style="--c:${statusColor};font-size:12px">${statusIcon} ${isSuccess ? 'Success' : 'Failed'}</span>
                             </div>
-                            <span class="pill ${isSuccess ? 'now' : 'done'}" style="--c:${statusColor};font-size:12px">${statusIcon} ${isSuccess ? 'Success' : 'Failed'}</span>
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-                  `;
-                }
+                          `;
+                        }).join('')}
+                      </div>
+                    `;
+                  }
 
-                // Refresh history
-                loadTodayRecords();
+                  // Refresh history
+                  loadTodayRecords();
+                } catch (err) {
+                  mainMsg.className = "msg bad";
+                  mainMsg.textContent = err.message || "Failed to submit group attendance.";
+                } finally {
+                  btnSubmitCode.disabled = false;
+                  btnSubmitCode.textContent = "Submit Group Attendance";
+                }
               };
             }
+          } catch (err) {
+            console.error("Error in mark attendance after():", err);
           }
-        };
-      }
-    };
+        }
+      };
+    }
+  };
     const NAV = [["home", "Dashboard", "Home"], ["profile", "Profile", "Profile"], ["timetable", "Timetable", "Timetable"], ["attendance", "Attendance", "Attendance"], ["marks", "Internal marks", "Marks"], ["mark", "Mark attendance", "Mark in"]];
 
     /* ===== 4. ROUTER ===== */
