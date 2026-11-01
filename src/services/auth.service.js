@@ -113,6 +113,7 @@ class AuthService {
       await srmSessionService.attachCookie(session.key, config.srmBaseUrl, cookieStr);
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
+      expressSession.savedCredentials = { username: regNo, password };
       return {
         ok: true,
         studentId: regNo,
@@ -124,6 +125,7 @@ class AuthService {
     if (config.devMockFallback) {
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
+      expressSession.savedCredentials = { username: regNo, password };
       return {
         ok: true,
         studentId: regNo,
@@ -156,6 +158,7 @@ class AuthService {
       if (result.success) {
         expressSession.studentId = regNo;
         expressSession.isAuthenticated = true;
+        expressSession.savedCredentials = { username: regNo, password };
         return {
           ok: true,
           studentId: regNo,

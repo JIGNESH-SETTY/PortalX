@@ -51,18 +51,19 @@ export function createApp() {
   }
 
   // 3. User Session Management
-  // Provides HTTP-only, isolated PortalX user sessions
+  // Provides HTTP-only, isolated PortalX user sessions with rolling 30-day persistent cookie
   app.use(
     session({
       name: 'portalx_sid',
       secret: config.sessionSecret,
       resave: false,
       saveUninitialized: false,
+      rolling: true,
       cookie: {
         httpOnly: true,
         secure: config.isProduction, // In production, require HTTPS
         sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days persistent cookie
       }
     })
   );

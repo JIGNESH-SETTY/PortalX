@@ -2,19 +2,21 @@ import { markAttendanceService } from '../services/markAttendance.service.js';
 import { srmSessionService, MAX_FRIENDS } from '../services/srmSession.service.js';
 import { authService } from '../services/auth.service.js';
 import { ValidationError } from '../utils/errors.js';
+import { withSrmAutoRenew } from '../utils/srmAutoRenew.js';
 
 export const markAttendanceController = {
   /**
-   * Return Mark Attendance page information (day order, today's attendance history).
+   * Return Mark Attendance page information (day order, today's attendance history) with auto-renewal.
    *
    * @param {import('express').Request} req - Express request
    * @param {import('express').Response} res - Express response
    */
   async getPageData(req, res) {
-    const srmSessionKey = req.session?.srmSessionKey;
-    const studentId = req.session?.studentId;
-
-    const data = await markAttendanceService.getPageData(srmSessionKey, studentId);
+    const data = await withSrmAutoRenew(req, async () => {
+      const srmSessionKey = req.session?.srmSessionKey;
+      const studentId = req.session?.studentId;
+      return await markAttendanceService.getPageData(srmSessionKey, studentId);
+    });
 
     res.status(200).json({
       ok: true,

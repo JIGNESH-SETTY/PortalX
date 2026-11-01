@@ -318,10 +318,14 @@
       color: var(--ink2);
       text-decoration: none;
       font: 800 13px var(--fd);
-      transition: flex .35s cubic-bezier(0.25, 1, 0.4, 1), background-color .25s ease, color .2s ease, transform .15s ease; will-change: flex
+      transition: flex .35s cubic-bezier(0.25, 1, 0.4, 1), background-color .25s ease, color .2s ease, transform .15s ease;
+      will-change: flex
     }
 
-    .bottom a:active { transform: scale(0.96); }
+    .bottom a:active {
+      transform: scale(0.96);
+    }
+
     .bottom a span {
       transition: opacity .2s ease;
       display: none
@@ -337,16 +341,25 @@
       display: inline
     }
 
-    
+
     #view {
       will-change: transform, opacity;
     }
+
     #view.anim-in {
       animation: viewSlide .26s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     @keyframes viewSlide {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .hero {
@@ -868,11 +881,20 @@
       text-align: right
     }
 
-    
+
     /* ===== Attendance rectangle rows ===== */
-    [data-tier="r"] { --tc: var(--bad); }
-    [data-tier="y"] { --tc: var(--amber); }
-    [data-tier="g"] { --tc: var(--ok); }
+    [data-tier="r"] {
+      --tc: var(--bad);
+    }
+
+    [data-tier="y"] {
+      --tc: var(--amber);
+    }
+
+    [data-tier="g"] {
+      --tc: var(--ok);
+    }
+
     .attbox {
       position: relative;
       display: flex;
@@ -889,21 +911,100 @@
       box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tc) 38%, var(--line));
       transition: transform .15s ease, box-shadow .15s ease;
     }
-    .attbox:active { transform: scale(.985); }
-    .attbox:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tc); }
-    .attL { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-    .attL .code { font: 800 12px var(--fh); letter-spacing: .04em; color: var(--tc); }
-    .attL .nm { font: 700 14.5px/1.25 var(--fd); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; }
-    .attR { display: flex; align-items: center; gap: 10px; flex: none; }
-    .attR .pct { font: 800 25px var(--fd); letter-spacing: -.04em; color: var(--tc); }
-    .attR .chev { width: 18px; height: 18px; color: var(--tc); opacity: .7; transition: transform .25s cubic-bezier(0.2, 0.9, 0.2, 1); }
-    details[open] .attR .chev { transform: rotate(180deg); }
-    .attlegend { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 4px 10px; }
-    .attlegend span { display: flex; align-items: center; gap: 6px; font: 700 11.5px var(--fh); color: var(--ink2); }
-    .attlegend i { width: 10px; height: 10px; border-radius: 3px; }
-    .attlegend i.r { background: var(--bad); }
-    .attlegend i.y { background: var(--amber); }
-    .attlegend i.g { background: var(--ok); }
+
+    .attbox:active {
+      transform: scale(.985);
+    }
+
+    .attbox:before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: var(--tc);
+    }
+
+    .attL {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .attL .code {
+      font: 800 12px var(--fh);
+      letter-spacing: .04em;
+      color: var(--tc);
+    }
+
+    .attL .nm {
+      font: 700 14.5px/1.25 var(--fd);
+      letter-spacing: -.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 62vw;
+    }
+
+    .attR {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: none;
+    }
+
+    .attR .pct {
+      font: 800 25px var(--fd);
+      letter-spacing: -.04em;
+      color: var(--tc);
+    }
+
+    .attR .chev {
+      width: 18px;
+      height: 18px;
+      color: var(--tc);
+      opacity: .7;
+      transition: transform .25s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    details[open] .attR .chev {
+      transform: rotate(180deg);
+    }
+
+    .attlegend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin: 6px 4px 10px;
+    }
+
+    .attlegend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font: 700 11.5px var(--fh);
+      color: var(--ink2);
+    }
+
+    .attlegend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .attlegend i.r {
+      background: var(--bad);
+    }
+
+    .attlegend i.y {
+      background: var(--amber);
+    }
+
+    .attlegend i.g {
+      background: var(--ok);
+    }
 
     .facts {
       display: grid;
@@ -1826,50 +1927,63 @@
       main {
         padding: 10px 10px 114px
       }
+
       .card {
         padding: 16px 14px;
         border-radius: 22px
       }
+
       .hero {
         padding: 20px 16px 18px;
         border-radius: 24px
       }
+
       .idc {
         padding: 20px 16px;
         border-radius: 24px
       }
+
       .two {
         gap: 8px
       }
+
       .two .card {
         padding: 14px 8px
       }
+
       .ringbox {
         width: 92px;
         height: 92px
       }
+
       .ringbox b {
         font-size: 20px
       }
+
       .bottom {
         left: 8px;
         right: 8px;
         padding: 5px
       }
+
       .bottom a {
         height: 46px
       }
+
       .bars {
         height: 140px;
         gap: 4px
       }
+
       .mrow .big,
       .row .big {
         font-size: 21px
       }
+
       .sumrow {
         gap: 12px
       }
+
       .sumrow h2 {
         font-size: 22px
       }
@@ -1881,10 +1995,66 @@
         animation: none !important
       }
     }
+    /* Floating sync banner for background data refreshes */
+    .sync-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      z-index: 1200;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font: 600 12.5px/1.3 var(--fh);
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      box-shadow: 0 4px 18px var(--shadow);
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .sync-banner.hide {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-24px);
+    }
+    .sync-banner.success {
+      background: color-mix(in srgb, var(--ra) 14%, var(--card));
+      border-color: color-mix(in srgb, var(--ra) 35%, transparent);
+      color: var(--ra);
+    }
+    .sync-banner.info {
+      background: color-mix(in srgb, var(--ink2) 10%, var(--card));
+      border-color: var(--line);
+      color: var(--ink2);
+    }
+    .sync-banner.error {
+      background: color-mix(in srgb, var(--bad) 12%, var(--card));
+      border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+      color: var(--bad);
+    }
+    .sync-spin {
+      width: 13px;
+      height: 13px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: syncRotate 0.75s linear infinite;
+      display: inline-block;
+      flex: none;
+    }
+    @keyframes syncRotate {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
 <body class="locked">
+  <div id="syncBanner" class="sync-banner" style="display:none" role="status" aria-live="polite">
+    <span id="syncIcon" class="sync-spin"></span>
+    <span id="syncText">Fetching new data…</span>
+  </div>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
@@ -1953,8 +2123,7 @@
         <form class="card lg-card" id="loginForm" novalidate>
           <div class="lg-f" id="fId"><label for="regNo">Application Number / Register Number</label>
             <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" autocapitalize="none"
-                autocomplete="username" autocorrect="off" spellcheck="false"
-                enterkeyhint="next" required></div>
+                autocomplete="username" autocorrect="off" spellcheck="false" enterkeyhint="next" required></div>
           </div>
           <div class="lg-f" id="fPw"><label for="pw">Password</label>
             <div class="lg-in"><input id="pw" name="password" type="password" placeholder="Enter your password"
@@ -1974,9 +2143,13 @@
           <div class="lg-msg" id="lgMsg" role="alert"></div>
           <button class="go" id="loginBtn" type="submit"><span class="sp"></span><span
               id="loginTxt">Login</span></button>
-          
+
           <div class="first">If you are a Student and this is your first login, you must use your <b>Register Number /
-              Application Number</b> as your User ID, with your date of birth [Format ddmmyyyy E.g. <b>13122007</b>] as
+              Application Number</b> as your User ID, with your date of birth [Format ddmmyyyy E.g. <b>
+              <DD>
+                <MM>
+                  <YYYY></YYYY>
+            </b>] as
             the password.</div>
         </form>
       </div>
@@ -1985,7 +2158,7 @@
           id="terms">Terms and Conditions</button></div>
     </div>
   </section>
-  
+
   <dialog class="sheet" id="dTerms">
     <div class="in">
       <div class="grab"></div>
@@ -2011,19 +2184,122 @@
     /* ===== 1. BACKEND API CLIENT ===== */
     const PERIODS = [["09:00", "09:50"], ["10:00", "10:50"], ["11:00", "11:50"], ["12:00", "12:50"], ["13:00", "13:50"], ["14:00", "14:50"], ["15:00", "15:50"], ["16:00", "17:30"]];
 
+    /* ===== LOCAL CACHE & CREDENTIAL MANAGEMENT ===== */
+    const cache = {
+      get(key) {
+        try {
+          const val = localStorage.getItem("px_cache_" + key);
+          return val ? JSON.parse(val) : null;
+        } catch {
+          return null;
+        }
+      },
+      set(key, data) {
+        try {
+          localStorage.setItem("px_cache_" + key, JSON.stringify(data));
+          localStorage.setItem("px_cache_timestamp", String(Date.now()));
+        } catch {}
+      },
+      clear() {
+        try {
+          ["profile", "timetable", "attendance", "marks", "mark_data", "timestamp"].forEach(k => {
+            localStorage.removeItem("px_cache_" + k);
+          });
+        } catch {}
+      }
+    };
+
+    const syncBanner = {
+      el: null,
+      textEl: null,
+      iconEl: null,
+      timer: null,
+      init() {
+        this.el = $("#syncBanner");
+        this.textEl = $("#syncText");
+        this.iconEl = $("#syncIcon");
+      },
+      show(text = "Fetching new data…") {
+        if (!this.el) this.init();
+        if (!this.el) return;
+        clearTimeout(this.timer);
+        this.el.className = "sync-banner";
+        this.iconEl.className = "sync-spin";
+        this.iconEl.innerHTML = "";
+        this.textEl.textContent = text;
+        this.el.style.display = "inline-flex";
+      },
+      success(text = "Updated just now") {
+        if (!this.el) this.init();
+        if (!this.el) return;
+        clearTimeout(this.timer);
+        this.el.className = "sync-banner success";
+        this.iconEl.className = "";
+        this.iconEl.innerHTML = '<svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:2.5"><path d="M20 6L9 17l-5-5"/></svg>';
+        this.textEl.textContent = text;
+        this.el.style.display = "inline-flex";
+        this.timer = setTimeout(() => this.hide(), 2200);
+      },
+      info(text = "Showing cached data") {
+        if (!this.el) this.init();
+        if (!this.el) return;
+        clearTimeout(this.timer);
+        this.el.className = "sync-banner info";
+        this.iconEl.className = "";
+        this.iconEl.innerHTML = '<svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
+        this.textEl.textContent = text;
+        this.el.style.display = "inline-flex";
+        this.timer = setTimeout(() => this.hide(), 2600);
+      },
+      hide() {
+        if (!this.el) return;
+        this.el.classList.add("hide");
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+          if (this.el) {
+            this.el.style.display = "none";
+            this.el.classList.remove("hide");
+          }
+        }, 280);
+      }
+    };
+
     // API client that communicates with Express 5 backend
     const api = {
+      isReauthenticating: false,
       async fetchJson(url, options = {}) {
-        const res = await fetch(url, {
-          credentials: 'same-origin',
-          ...options,
-          headers: {
-            'Accept': 'application/json',
-            ...(options.headers || {})
-          }
-        });
+        let res;
+        try {
+          res = await fetch(url, {
+            credentials: 'same-origin',
+            ...options,
+            headers: {
+              'Accept': 'application/json',
+              ...(options.headers || {})
+            }
+          });
+        } catch (netErr) {
+          throw new Error('Network connection error: ' + (netErr.message || 'offline'));
+        }
 
         if (res.status === 401) {
+          const creds = store.getCredentials();
+          // Transparently re-authenticate using stored credentials if university session timed out
+          if (creds && !this.isReauthenticating && !store.getIsAdmin()) {
+            this.isReauthenticating = true;
+            syncBanner.show("Session timed out · Refreshing session…");
+            try {
+              const loginResult = await this.login(creds.id, creds.pw);
+              this.isReauthenticating = false;
+              if (loginResult && loginResult.ok) {
+                // Retry the original query with the newly established session
+                return await this.fetchJson(url, options);
+              }
+            } catch (reauthErr) {
+              this.isReauthenticating = false;
+            }
+          }
+
           store.clear();
           showLogin();
           throw new Error('Session expired. Please sign in again.');
@@ -2038,24 +2314,54 @@
         return json.data !== undefined ? json.data : json;
       },
 
-      async getProfile() {
-        return await this.fetchJson('/api/student/profile');
+      async getProfile(force = false) {
+        if (!force) {
+          const c = cache.get('profile');
+          if (c) return c;
+        }
+        const data = await this.fetchJson('/api/student/profile');
+        cache.set('profile', data);
+        return data;
       },
 
-      async getTimetable() {
-        return await this.fetchJson('/api/timetable');
+      async getTimetable(force = false) {
+        if (!force) {
+          const c = cache.get('timetable');
+          if (c) return c;
+        }
+        const data = await this.fetchJson('/api/timetable');
+        cache.set('timetable', data);
+        return data;
       },
 
-      async getAttendance() {
-        return await this.fetchJson('/api/attendance');
+      async getAttendance(force = false) {
+        if (!force) {
+          const c = cache.get('attendance');
+          if (c) return c;
+        }
+        const data = await this.fetchJson('/api/attendance');
+        cache.set('attendance', data);
+        return data;
       },
 
-      async getInternalMarks() {
-        return await this.fetchJson('/api/marks');
+      async getInternalMarks(force = false) {
+        if (!force) {
+          const c = cache.get('marks');
+          if (c) return c;
+        }
+        const data = await this.fetchJson('/api/marks');
+        cache.set('marks', data);
+        return data;
       },
 
-      async getMarkAttendanceData() {
-        return await this.fetchJson('/api/mark-attendance');
+      async getMarkAttendanceData(force = false) {
+        if (!force) {
+          const c = cache.get('mark_data');
+          if (c) return c;
+        }
+        const data = await this.fetchJson('/api/mark-attendance');
+        cache.set('mark_data', data);
+        return data;
       },
 
       async login(username, password) {
@@ -2119,7 +2425,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type, ...data })
           });
-        } catch {}
+        } catch { }
       },
 
       async submitAttendanceCode(code) {
@@ -2289,7 +2595,7 @@
     const slotState = i => { const n = nowMin(); return n < mins(PERIODS[i][0]) ? "upcoming" : n <= mins(PERIODS[i][1]) ? "now" : "done" };
     const dur = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
     const fmt = n => (n === null || n === undefined || isNaN(n)) ? "--" : Number(n).toFixed(2);
-    
+
     const nameOf = (subs, code) => {
       if (!code) return "";
       const c = String(code).trim();
@@ -2407,9 +2713,9 @@
   <div class="card"><div class="sumrow"><div class="ringbox">${ring(avg, "")}<b>${avg.toFixed(1)}%</b></div><div><h2>Average</h2><p class="muted">Across ${rows.length} subjects</p><p class="note">${sum(1)} classes · ${sum(2)} present · ${sum(3)} absent</p></div></div></div>
   <div class="attlegend"><span><i class="r"></i>Below 75%</span><span><i class="y"></i>75–79%</span><span><i class="g"></i>80% and above</span></div>
   <div style="padding:0 2px">${rows.map(r => {
-    const sName = nameOf(t.subjects, r[0]);
-    return `<details><summary class="attbox" data-tier="${r[7] < 75 ? "r" : r[7] < 80 ? "y" : "g"}"><div class="attL"><div class="code">${esc(r[0])}</div><div class="nm">${esc(sName || r[0])}</div></div><div class="attR"><b class="pct">${fmt(r[7])}%</b><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div></summary><div class="facts" style="--c:${col(r[0])}"><div><b>${r[1]}</b><small>Conducted</small></div><div><b>${r[2]}</b><small>Present</small></div><div><b>${r[3]}</b><small>Absent</small></div><div><b>${r[4]}</b><small>OD/ML taken</small></div><div><b>${fmt(r[5])}%</b><small>Present</small></div><div><b>${fmt(r[6])}%</b><small>OD/ML approved</small></div></div></details>`;
-  }).join("")}</div>
+          const sName = nameOf(t.subjects, r[0]);
+          return `<details><summary class="attbox" data-tier="${r[7] < 75 ? "r" : r[7] < 80 ? "y" : "g"}"><div class="attL"><div class="code">${esc(r[0])}</div><div class="nm">${esc(sName || r[0])}</div></div><div class="attR"><b class="pct">${fmt(r[7])}%</b><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div></summary><div class="facts" style="--c:${col(r[0])}"><div><b>${r[1]}</b><small>Conducted</small></div><div><b>${r[2]}</b><small>Present</small></div><div><b>${r[3]}</b><small>Absent</small></div><div><b>${r[4]}</b><small>OD/ML taken</small></div><div><b>${fmt(r[5])}%</b><small>Present</small></div><div><b>${fmt(r[6])}%</b><small>OD/ML approved</small></div></div></details>`;
+        }).join("")}</div>
   <p class="note" style="margin:0 4px 14px">Tap a subject for the full breakdown. For any discrepancy, contact the course teacher.</p>
   <div class="card"><details class="n"><summary>How attendance is calculated</summary><p class="note">Attendance % = student present slots ÷ faculty-entered slots × 100.<br>OD/ML is allowed for at most 15% of scheduled slots in a course.<br>To consider OD/ML, keep at least 60% attendance in the course.<br>OD/ML % = OD/ML submitted ÷ total slots scheduled for the semester × 100.</p></details></div>`;
       },
@@ -2430,22 +2736,22 @@
         return `<h1>Internal marks</h1><p class="sub">Marks obtained out of the maximum.</p>
   <div class="card"><div class="sumrow"><div class="ringbox">${ring(mp, "")}<b>${mp.toFixed(0)}%</b></div><div><h2>${fmt(got)} / ${max}</h2><p class="muted">Total across ${rows.length} subjects</p></div></div></div>
   <div class="card"><h2>Compare subjects</h2><div class="bars" role="img" aria-label="Bar chart of marks percentage per subject">${rows.map(r => {
-    const pct = r[2] > 0 ? Math.round((r[1] / r[2]) * 100) : 0;
-    const short = shortCode(r[0]);
-    return `<div class="bcol" style="--c:${col(r[0])}"><b>${pct}%</b><div class="btrack"><i style="height:${Math.max(pct, 4)}%"></i></div><span title="${esc(r[0])}">${esc(short)}</span></div>`;
-  }).join("")}</div><p class="note">Bar height shows marks as a percentage of each subject’s maximum.</p></div>
+          const pct = r[2] > 0 ? Math.round((r[1] / r[2]) * 100) : 0;
+          const short = shortCode(r[0]);
+          return `<div class="bcol" style="--c:${col(r[0])}"><b>${pct}%</b><div class="btrack"><i style="height:${Math.max(pct, 4)}%"></i></div><span title="${esc(r[0])}">${esc(short)}</span></div>`;
+        }).join("")}</div><p class="note">Bar height shows marks as a percentage of each subject’s maximum.</p></div>
   <div class="card" style="padding:6px 18px">${rows.map(r => {
-    const norm = String(r[0]).replace(/\s+/g, '').toUpperCase();
-    const sDetail = subjects.find(s => String(s.code || '').replace(/\s+/g, '').toUpperCase() === norm);
-    const hasComponents = sDetail && Array.isArray(sDetail.components) && sDetail.components.length > 0;
-    const sName = nameOf(t.subjects, r[0]);
-    const pct = r[2] > 0 ? Math.min(Math.round((r[1] / r[2]) * 100), 100) : 0;
+          const norm = String(r[0]).replace(/\s+/g, '').toUpperCase();
+          const sDetail = subjects.find(s => String(s.code || '').replace(/\s+/g, '').toUpperCase() === norm);
+          const hasComponents = sDetail && Array.isArray(sDetail.components) && sDetail.components.length > 0;
+          const sName = nameOf(t.subjects, r[0]);
+          const pct = r[2] > 0 ? Math.min(Math.round((r[1] / r[2]) * 100), 100) : 0;
 
-    if (hasComponents) {
-      return `<details><summary class="mrow" style="--c:${col(r[0])};cursor:pointer"><div class="code">${esc(r[0])}</div><div class="big">${fmt(r[1])} <small>/ ${r[2]}</small></div><div class="nm">${esc(sName || r[0])}</div><div class="bar" role="img" aria-label="${fmt(r[1])} of ${r[2]}"><i style="width:${pct}%"></i></div></summary><div class="facts" style="--c:${col(r[0])};margin-top:8px">${sDetail.components.map(c => `<div><b>${c.conducted !== null ? fmt(c.conducted) : '--'}</b><small>${esc(c.name)} (/ ${c.max})</small></div>`).join('')}</div></details>`;
-    }
-    return `<div class="mrow" style="--c:${col(r[0])}"><div class="code">${esc(r[0])}</div><div class="big">${fmt(r[1])} <small>/ ${r[2]}</small></div><div class="nm">${esc(sName || r[0])}</div><div class="bar" role="img" aria-label="${fmt(r[1])} of ${r[2]}"><i style="width:${pct}%"></i></div></div>`;
-  }).join("")}</div>`;
+          if (hasComponents) {
+            return `<details><summary class="mrow" style="--c:${col(r[0])};cursor:pointer"><div class="code">${esc(r[0])}</div><div class="big">${fmt(r[1])} <small>/ ${r[2]}</small></div><div class="nm">${esc(sName || r[0])}</div><div class="bar" role="img" aria-label="${fmt(r[1])} of ${r[2]}"><i style="width:${pct}%"></i></div></summary><div class="facts" style="--c:${col(r[0])};margin-top:8px">${sDetail.components.map(c => `<div><b>${c.conducted !== null ? fmt(c.conducted) : '--'}</b><small>${esc(c.name)} (/ ${c.max})</small></div>`).join('')}</div></details>`;
+          }
+          return `<div class="mrow" style="--c:${col(r[0])}"><div class="code">${esc(r[0])}</div><div class="big">${fmt(r[1])} <small>/ ${r[2]}</small></div><div class="nm">${esc(sName || r[0])}</div><div class="bar" role="img" aria-label="${fmt(r[1])} of ${r[2]}"><i style="width:${pct}%"></i></div></div>`;
+        }).join("")}</div>`;
       },
       async mark() {
         return {
@@ -2518,61 +2824,61 @@
           after() {
             try {
               /** Maximum allowed friend accounts for group attendance */
-            const MAX_FRIENDS = 4;
+              const MAX_FRIENDS = 4;
 
-            /** In-memory array of active friends registered for this session */
-            let activeFriends = [];
+              /** In-memory array of active friends registered for this session */
+              let activeFriends = [];
 
-            // DOM Element References
-            const friendList = $("#friendList");
-            const friendBadge = $("#friendCountBadge");
-            const btnToggleForm = $("#btnToggleFriendForm");
-            const formCard = $("#friendFormCard");
-            const inputReg = $("#friendReg");
-            const inputPw = $("#friendPw");
-            const btnSubmitFriend = $("#btnAddFriendSubmit");
-            const btnCancelForm = $("#btnCancelFriendForm");
-            const formMsg = $("#friendFormMsg");
-            const codeInput = $("#code");
-            const btnSubmitCode = $("#sub");
-            const mainMsg = $("#msg");
-            const groupResults = $("#groupResults");
+              // DOM Element References
+              const friendList = $("#friendList");
+              const friendBadge = $("#friendCountBadge");
+              const btnToggleForm = $("#btnToggleFriendForm");
+              const formCard = $("#friendFormCard");
+              const inputReg = $("#friendReg");
+              const inputPw = $("#friendPw");
+              const btnSubmitFriend = $("#btnAddFriendSubmit");
+              const btnCancelForm = $("#btnCancelFriendForm");
+              const formMsg = $("#friendFormMsg");
+              const codeInput = $("#code");
+              const btnSubmitCode = $("#sub");
+              const mainMsg = $("#msg");
+              const groupResults = $("#groupResults");
 
-            /**
-             * Render the active friends list and update the limit counter badge.
-             */
-            const renderFriends = () => {
-              if (!friendList || !friendBadge) return;
+              /**
+               * Render the active friends list and update the limit counter badge.
+               */
+              const renderFriends = () => {
+                if (!friendList || !friendBadge) return;
 
-              // Update limit badge
-              friendBadge.textContent = `${activeFriends.length} / ${MAX_FRIENDS} Friends`;
-              if (activeFriends.length >= MAX_FRIENDS) {
-                friendBadge.style.setProperty("--c", "var(--amber)");
-              } else {
-                friendBadge.style.removeProperty("--c");
-              }
-
-              // Update Toggle Button state based on MAX_FRIENDS
-              if (btnToggleForm) {
+                // Update limit badge
+                friendBadge.textContent = `${activeFriends.length} / ${MAX_FRIENDS} Friends`;
                 if (activeFriends.length >= MAX_FRIENDS) {
-                  btnToggleForm.disabled = true;
-                  btnToggleForm.style.opacity = "0.5";
-                  btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M5 13l4 4L19 7"/></svg> Maximum Friends Reached (${MAX_FRIENDS})`;
-                  if (formCard) formCard.style.display = "none";
+                  friendBadge.style.setProperty("--c", "var(--amber)");
                 } else {
-                  btnToggleForm.disabled = false;
-                  btnToggleForm.style.opacity = "1";
-                  btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 5v14M5 12h14"/></svg> Add Friend (${activeFriends.length}/${MAX_FRIENDS})`;
+                  friendBadge.style.removeProperty("--c");
                 }
-              }
 
-              // Render list items
-              if (activeFriends.length === 0) {
-                friendList.innerHTML = '<p class="muted" style="margin:6px 0;font-size:13px">No friends added yet. Tap "+ Add Friend" to include group members.</p>';
-                return;
-              }
+                // Update Toggle Button state based on MAX_FRIENDS
+                if (btnToggleForm) {
+                  if (activeFriends.length >= MAX_FRIENDS) {
+                    btnToggleForm.disabled = true;
+                    btnToggleForm.style.opacity = "0.5";
+                    btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M5 13l4 4L19 7"/></svg> Maximum Friends Reached (${MAX_FRIENDS})`;
+                    if (formCard) formCard.style.display = "none";
+                  } else {
+                    btnToggleForm.disabled = false;
+                    btnToggleForm.style.opacity = "1";
+                    btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 5v14M5 12h14"/></svg> Add Friend (${activeFriends.length}/${MAX_FRIENDS})`;
+                  }
+                }
 
-              friendList.innerHTML = activeFriends.map(friend => `
+                // Render list items
+                if (activeFriends.length === 0) {
+                  friendList.innerHTML = '<p class="muted" style="margin:6px 0;font-size:13px">No friends added yet. Tap "+ Add Friend" to include group members.</p>';
+                  return;
+                }
+
+                friendList.innerHTML = activeFriends.map(friend => `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:16px;background:var(--chip);border:1px solid var(--line);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05)">
                   <div style="display:flex;align-items:center;gap:10px">
                     <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ok)"></span>
@@ -2585,171 +2891,171 @@
                 </div>
               `).join('');
 
-              // Attach click listeners to Remove buttons
-              friendList.querySelectorAll(".btn-rm-friend").forEach(button => {
-                button.onclick = async (e) => {
-                  const friendId = e.currentTarget.dataset.id;
-                  button.disabled = true;
-                  button.textContent = "…";
-                  await api.removeFriend(friendId);
-                  activeFriends = activeFriends.filter(f => f.studentId.toUpperCase() !== friendId.toUpperCase());
-                  renderFriends();
-                };
-              });
-            };
+                // Attach click listeners to Remove buttons
+                friendList.querySelectorAll(".btn-rm-friend").forEach(button => {
+                  button.onclick = async (e) => {
+                    const friendId = e.currentTarget.dataset.id;
+                    button.disabled = true;
+                    button.textContent = "…";
+                    await api.removeFriend(friendId);
+                    activeFriends = activeFriends.filter(f => f.studentId.toUpperCase() !== friendId.toUpperCase());
+                    renderFriends();
+                  };
+                });
+              };
 
-            // Load existing friends from server session
-            api.getFriends().then(existingFriends => {
-              if (Array.isArray(existingFriends)) {
-                activeFriends = existingFriends;
+              // Load existing friends from server session
+              api.getFriends().then(existingFriends => {
+                if (Array.isArray(existingFriends)) {
+                  activeFriends = existingFriends;
+                  renderFriends();
+                }
+              }).catch(() => {
                 renderFriends();
-              }
-            }).catch(() => {
-              renderFriends();
-            });
-
-            // Toggle Add Friend Form
-            if (btnToggleForm && formCard) {
-              btnToggleForm.onclick = () => {
-                const isOpen = formCard.style.display !== "none";
-                formCard.style.display = isOpen ? "none" : "block";
-                if (!isOpen && inputReg) inputReg.focus();
-                if (formMsg) formMsg.textContent = "";
-              };
-            }
-
-            // Cancel Add Friend Form
-            if (btnCancelForm && formCard) {
-              btnCancelForm.onclick = () => {
-                formCard.style.display = "none";
-                if (formMsg) formMsg.textContent = "";
-              };
-            }
-
-            // Capitalize Friend Reg ID as typed
-            if (inputReg) {
-              inputReg.addEventListener("input", e => {
-                e.target.value = e.target.value.replace(/\s/g, "").toUpperCase();
               });
-            }
 
-            // Handle Friend Submission
-            if (btnSubmitFriend) {
-              btnSubmitFriend.onclick = async () => {
-                const friendId = (inputReg.value || "").trim().toUpperCase();
-                const friendPassword = (inputPw.value || "").trim();
+              // Toggle Add Friend Form
+              if (btnToggleForm && formCard) {
+                btnToggleForm.onclick = () => {
+                  const isOpen = formCard.style.display !== "none";
+                  formCard.style.display = isOpen ? "none" : "block";
+                  if (!isOpen && inputReg) inputReg.focus();
+                  if (formMsg) formMsg.textContent = "";
+                };
+              }
 
-                if (!friendId) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = "Enter your friend's Register Number.";
-                  return;
-                }
-                if (!/^AP\d{11,12}$/i.test(friendId)) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = "Friend's Register Number must start with AP followed by 11 or 12 digits.";
-                  return;
-                }
-                if (!friendPassword) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = "Enter your friend's password.";
-                  return;
-                }
-                if (activeFriends.some(f => f.studentId.toUpperCase() === friendId)) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = "This friend is already in your attendance group.";
-                  return;
-                }
-                if (activeFriends.length >= MAX_FRIENDS) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = `Maximum limit of ${MAX_FRIENDS} friends reached.`;
-                  return;
-                }
+              // Cancel Add Friend Form
+              if (btnCancelForm && formCard) {
+                btnCancelForm.onclick = () => {
+                  formCard.style.display = "none";
+                  if (formMsg) formMsg.textContent = "";
+                };
+              }
 
-                btnSubmitFriend.disabled = true;
-                btnSubmitFriend.textContent = "Authenticating friend…";
-                formMsg.className = "msg";
-                formMsg.textContent = "Connecting to SRM and verifying credentials…";
+              // Capitalize Friend Reg ID as typed
+              if (inputReg) {
+                inputReg.addEventListener("input", e => {
+                  e.target.value = e.target.value.replace(/\s/g, "").toUpperCase();
+                });
+              }
 
-                try {
-                  const response = await api.addFriend(friendId, friendPassword);
-                  activeFriends.push({ studentId: response.regId || friendId, addedAt: Date.now() });
-                  renderFriends();
-                  inputReg.value = "";
-                  inputPw.value = "";
-                  formMsg.className = "msg ok";
-                  formMsg.textContent = `${response.regId || friendId} verified and added!`;
-                  setTimeout(() => {
-                    if (formCard) formCard.style.display = "none";
-                    if (formMsg) formMsg.textContent = "";
-                  }, 1200);
-                } catch (err) {
-                  formMsg.className = "msg bad";
-                  formMsg.textContent = err.message || "Failed to authenticate friend. Check their credentials.";
-                } finally {
-                  btnSubmitFriend.disabled = false;
-                  btnSubmitFriend.textContent = "Verify & Add Friend";
-                }
-              };
-            }
+              // Handle Friend Submission
+              if (btnSubmitFriend) {
+                btnSubmitFriend.onclick = async () => {
+                  const friendId = (inputReg.value || "").trim().toUpperCase();
+                  const friendPassword = (inputPw.value || "").trim();
 
-            // Load Today's Attendance History
-            const loadTodayRecords = () => {
-              api.getMarkAttendanceData().then(d => {
-                const recs = $("#todayRecords");
-                if (!recs) return;
-                if (d && d.todayAttendance && d.todayAttendance.length > 0) {
-                  recs.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${d.todayAttendance.map(item => `
+                  if (!friendId) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = "Enter your friend's Register Number.";
+                    return;
+                  }
+                  if (!/^AP\d{11,12}$/i.test(friendId)) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = "Friend's Register Number must start with AP followed by 11 or 12 digits.";
+                    return;
+                  }
+                  if (!friendPassword) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = "Enter your friend's password.";
+                    return;
+                  }
+                  if (activeFriends.some(f => f.studentId.toUpperCase() === friendId)) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = "This friend is already in your attendance group.";
+                    return;
+                  }
+                  if (activeFriends.length >= MAX_FRIENDS) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = `Maximum limit of ${MAX_FRIENDS} friends reached.`;
+                    return;
+                  }
+
+                  btnSubmitFriend.disabled = true;
+                  btnSubmitFriend.textContent = "Authenticating friend…";
+                  formMsg.className = "msg";
+                  formMsg.textContent = "Connecting to SRM and verifying credentials…";
+
+                  try {
+                    const response = await api.addFriend(friendId, friendPassword);
+                    activeFriends.push({ studentId: response.regId || friendId, addedAt: Date.now() });
+                    renderFriends();
+                    inputReg.value = "";
+                    inputPw.value = "";
+                    formMsg.className = "msg ok";
+                    formMsg.textContent = `${response.regId || friendId} verified and added!`;
+                    setTimeout(() => {
+                      if (formCard) formCard.style.display = "none";
+                      if (formMsg) formMsg.textContent = "";
+                    }, 1200);
+                  } catch (err) {
+                    formMsg.className = "msg bad";
+                    formMsg.textContent = err.message || "Failed to authenticate friend. Check their credentials.";
+                  } finally {
+                    btnSubmitFriend.disabled = false;
+                    btnSubmitFriend.textContent = "Verify & Add Friend";
+                  }
+                };
+              }
+
+              // Load Today's Attendance History
+              const loadTodayRecords = () => {
+                api.getMarkAttendanceData().then(d => {
+                  const recs = $("#todayRecords");
+                  if (!recs) return;
+                  if (d && d.todayAttendance && d.todayAttendance.length > 0) {
+                    recs.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${d.todayAttendance.map(item => `
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
                       <div><b>${esc(item.subject)}</b><div style="font-size:12px;color:var(--ink2)">Hour: ${esc(item.hour)} · ${esc(item.date)}</div></div>
                       <span class="pill ${item.status?.toLowerCase() === 'present' ? 'now' : 'done'}">${esc(item.status)}</span>
                     </div>
                   `).join('')}</div>`;
-                } else {
-                  recs.innerHTML = '<p class="muted">Nothing recorded yet for today.</p>';
-                }
-              }).catch(() => {
-                const recs = $("#todayRecords");
-                if (recs) recs.innerHTML = '<p class="muted">Nothing recorded yet. Entries will show here once recorded.</p>';
-              });
-            };
-            loadTodayRecords();
+                  } else {
+                    recs.innerHTML = '<p class="muted">Nothing recorded yet for today.</p>';
+                  }
+                }).catch(() => {
+                  const recs = $("#todayRecords");
+                  if (recs) recs.innerHTML = '<p class="muted">Nothing recorded yet. Entries will show here once recorded.</p>';
+                });
+              };
+              loadTodayRecords();
 
-            // Handle Group Attendance Code Submission
-            if (btnSubmitCode) {
-              btnSubmitCode.onclick = async () => {
-                const code = (codeInput.value || "").trim().toUpperCase();
+              // Handle Group Attendance Code Submission
+              if (btnSubmitCode) {
+                btnSubmitCode.onclick = async () => {
+                  const code = (codeInput.value || "").trim().toUpperCase();
 
-                if (!/^[A-Za-z]\d{6}$/.test(code)) {
-                  mainMsg.className = "msg bad";
-                  mainMsg.textContent = "Use 1 letter followed by 6 numbers, e.g. A123456.";
-                  if (groupResults) groupResults.innerHTML = "";
-                  return;
-                }
+                  if (!/^[A-Za-z]\d{6}$/.test(code)) {
+                    mainMsg.className = "msg bad";
+                    mainMsg.textContent = "Use 1 letter followed by 6 numbers, e.g. A123456.";
+                    if (groupResults) groupResults.innerHTML = "";
+                    return;
+                  }
 
-                const totalStudents = activeFriends.length + 1;
-                btnSubmitCode.disabled = true;
-                btnSubmitCode.textContent = `Submitting for ${totalStudents} student${totalStudents > 1 ? 's' : ''}…`;
-                mainMsg.className = "msg";
-                mainMsg.textContent = `Processing group submission (${totalStudents} accounts)…`;
-                if (groupResults) groupResults.innerHTML = '<div class="skel" style="padding:16px">Marking attendance sequentially…</div>';
+                  const totalStudents = activeFriends.length + 1;
+                  btnSubmitCode.disabled = true;
+                  btnSubmitCode.textContent = `Submitting for ${totalStudents} student${totalStudents > 1 ? 's' : ''}…`;
+                  mainMsg.className = "msg";
+                  mainMsg.textContent = `Processing group submission (${totalStudents} accounts)…`;
+                  if (groupResults) groupResults.innerHTML = '<div class="skel" style="padding:16px">Marking attendance sequentially…</div>';
 
-                try {
-                  const response = await api.submitGroupAttendance(code);
+                  try {
+                    const response = await api.submitGroupAttendance(code);
 
-                  mainMsg.className = "msg " + (response.ok ? "ok" : "bad");
-                  mainMsg.textContent = response.message || (response.ok ? "Attendance marked for all members." : "Completed with some notices.");
+                    mainMsg.className = "msg " + (response.ok ? "ok" : "bad");
+                    mainMsg.textContent = response.message || (response.ok ? "Attendance marked for all members." : "Completed with some notices.");
 
-                  // Render per-student breakdown cards
-                  if (groupResults && Array.isArray(response.data) && response.data.length > 0) {
-                    groupResults.innerHTML = `
+                    // Render per-student breakdown cards
+                    if (groupResults && Array.isArray(response.data) && response.data.length > 0) {
+                      groupResults.innerHTML = `
                       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
                         <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:2px">Submission Results:</div>
                         ${response.data.map(item => {
-                          const isSuccess = item.ok;
-                          const statusColor = isSuccess ? "var(--ok)" : "var(--bad)";
-                          const statusIcon = isSuccess ? "✅" : "❌";
-                          const label = item.isPrimary ? `${esc(item.studentId)} (You)` : `${esc(item.studentId)} (Friend)`;
-                          return `
+                        const isSuccess = item.ok;
+                        const statusColor = isSuccess ? "var(--ok)" : "var(--bad)";
+                        const statusIcon = isSuccess ? "✅" : "❌";
+                        const label = item.isPrimary ? `${esc(item.studentId)} (You)` : `${esc(item.studentId)} (Friend)`;
+                        return `
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:color-mix(in srgb, ${statusColor} 10%, var(--card));border-left:4px solid ${statusColor}">
                               <div>
                                 <b style="font-size:13.5px;font-family:var(--fd)">${label}</b>
@@ -2758,31 +3064,31 @@
                               <span class="pill ${isSuccess ? 'now' : 'done'}" style="--c:${statusColor};font-size:12px">${statusIcon} ${isSuccess ? 'Success' : 'Failed'}</span>
                             </div>
                           `;
-                        }).join('')}
+                      }).join('')}
                       </div>
                     `;
-                  }
+                    }
 
-                  // Refresh history
-                  loadTodayRecords();
-                } catch (err) {
-                  mainMsg.className = "msg bad";
-                  mainMsg.textContent = err.message || "Failed to submit group attendance.";
-                } finally {
-                  btnSubmitCode.disabled = false;
-                  btnSubmitCode.textContent = "Submit Group Attendance";
-                }
-              };
+                    // Refresh history
+                    loadTodayRecords();
+                  } catch (err) {
+                    mainMsg.className = "msg bad";
+                    mainMsg.textContent = err.message || "Failed to submit group attendance.";
+                  } finally {
+                    btnSubmitCode.disabled = false;
+                    btnSubmitCode.textContent = "Submit Group Attendance";
+                  }
+                };
+              }
+            } catch (err) {
+              console.error("Error in mark attendance after():", err);
             }
-          } catch (err) {
-            console.error("Error in mark attendance after():", err);
           }
-        }
-      };
-    },
-    async admin() {
-      return {
-        html: `
+        };
+      },
+      async admin() {
+        return {
+          html: `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <h1>Analytics</h1>
             <span class="pill" style="font-weight:700;--c:var(--ok)">Live System Data</span>
@@ -2793,33 +3099,33 @@
             <div class="skel" style="padding:24px;margin-top:14px">Loading live telemetry metrics…</div>
           </div>
         `,
-        after() {
-          const container = $("#adminContent");
-          const loadStats = async () => {
-            try {
-              const stats = await api.getAnalyticsStats();
-              const totalPV = Math.max(1, stats.totalPageViews || 0);
+          after() {
+            const container = $("#adminContent");
+            const loadStats = async () => {
+              try {
+                const stats = await api.getAnalyticsStats();
+                const totalPV = Math.max(1, stats.totalPageViews || 0);
 
-              const pageList = [
-                { key: 'attendance', label: 'Attendance Breakdown', count: stats.pageViews?.attendance || 0, color: 'var(--s1)' },
-                { key: 'timetable', label: 'Timetable Schedule', count: stats.pageViews?.timetable || 0, color: 'var(--s2)' },
-                { key: 'marks', label: 'Internal Marks', count: stats.pageViews?.marks || 0, color: 'var(--s3)' },
-                { key: 'mark', label: 'Mark Attendance Page', count: stats.pageViews?.mark || 0, color: 'var(--s4)' },
-                { key: 'home', label: 'Dashboard Home', count: stats.pageViews?.home || 0, color: 'var(--p)' },
-                { key: 'profile', label: 'Student Profile', count: stats.pageViews?.profile || 0, color: 'var(--ok)' }
-              ];
+                const pageList = [
+                  { key: 'attendance', label: 'Attendance Breakdown', count: stats.pageViews?.attendance || 0, color: 'var(--s1)' },
+                  { key: 'timetable', label: 'Timetable Schedule', count: stats.pageViews?.timetable || 0, color: 'var(--s2)' },
+                  { key: 'marks', label: 'Internal Marks', count: stats.pageViews?.marks || 0, color: 'var(--s3)' },
+                  { key: 'mark', label: 'Mark Attendance Page', count: stats.pageViews?.mark || 0, color: 'var(--s4)' },
+                  { key: 'home', label: 'Dashboard Home', count: stats.pageViews?.home || 0, color: 'var(--p)' },
+                  { key: 'profile', label: 'Student Profile', count: stats.pageViews?.profile || 0, color: 'var(--ok)' }
+                ];
 
-              const timeAgo = (ts) => {
-                const s = Math.floor((Date.now() - ts) / 1000);
-                if (s < 60) return `${s}s ago`;
-                const m = Math.floor(s / 60);
-                if (m < 60) return `${m}m ago`;
-                const h = Math.floor(m / 60);
-                if (h < 24) return `${h}h ago`;
-                return `${Math.floor(h / 24)}d ago`;
-              };
+                const timeAgo = (ts) => {
+                  const s = Math.floor((Date.now() - ts) / 1000);
+                  if (s < 60) return `${s}s ago`;
+                  const m = Math.floor(s / 60);
+                  if (m < 60) return `${m}m ago`;
+                  const h = Math.floor(m / 60);
+                  if (h < 24) return `${h}h ago`;
+                  return `${Math.floor(h / 24)}d ago`;
+                };
 
-              container.innerHTML = `
+                container.innerHTML = `
                 <!-- 2x2 Mobile Analytics Grid -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
                   <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
@@ -2876,8 +3182,8 @@
 
                   <div style="display:flex;flex-direction:column;gap:12px">
                     ${pageList.map(p => {
-                      const pct = Math.round((p.count / totalPV) * 100);
-                      return `
+                  const pct = Math.round((p.count / totalPV) * 100);
+                  return `
                         <div>
                           <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
                             <span style="font-weight:600">${esc(p.label)}</span>
@@ -2888,7 +3194,7 @@
                           </div>
                         </div>
                       `;
-                    }).join('')}
+                }).join('')}
                   </div>
                 </div>
 
@@ -2901,8 +3207,8 @@
 
                   <div style="display:flex;flex-direction:column;gap:8px">
                     ${(!stats.recentActivity || stats.recentActivity.length === 0)
-                      ? '<p class="muted">No student activity logged yet.</p>'
-                      : stats.recentActivity.map(act => `
+                    ? '<p class="muted">No student activity logged yet.</p>'
+                    : stats.recentActivity.map(act => `
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">
                           <span style="font-weight:500">${esc(act.description)}</span>
                           <span class="muted" style="font-size:11.5px">${timeAgo(act.timestamp)}</span>
@@ -2912,31 +3218,31 @@
                 </div>
               `;
 
-              const btnRefresh = $("#btnRefreshStats");
-              if (btnRefresh) {
-                btnRefresh.onclick = () => {
-                  btnRefresh.disabled = true;
-                  btnRefresh.textContent = "Updating…";
-                  loadStats();
-                };
-              }
-            } catch (err) {
-              container.innerHTML = `
+                const btnRefresh = $("#btnRefreshStats");
+                if (btnRefresh) {
+                  btnRefresh.onclick = () => {
+                    btnRefresh.disabled = true;
+                    btnRefresh.textContent = "Updating…";
+                    loadStats();
+                  };
+                }
+              } catch (err) {
+                container.innerHTML = `
                 <div class="fail">
                   <p class="bad">Failed to load analytics: ${esc(err.message)}</p>
                   <button class="go" id="btnRetryStats" style="margin-top:10px">Retry</button>
                 </div>
               `;
-              const btnRetry = $("#btnRetryStats");
-              if (btnRetry) btnRetry.onclick = loadStats;
-            }
-          };
+                const btnRetry = $("#btnRetryStats");
+                if (btnRetry) btnRetry.onclick = loadStats;
+              }
+            };
 
-          loadStats();
-        }
-      };
-    }
-  };
+            loadStats();
+          }
+        };
+      }
+    };
     const NAV = [["home", "Dashboard", "Home"], ["profile", "Profile", "Profile"], ["timetable", "Timetable", "Timetable"], ["attendance", "Attendance", "Attendance"], ["marks", "Internal marks", "Marks"], ["mark", "Mark attendance", "Mark in"]];
 
     /* ===== 4. ROUTER ===== */
@@ -3021,31 +3327,60 @@
       }
     }, { passive: true });
 
-    /* ===== 5. LOGIN ===== */
+    /* ===== 5. LOGIN & SESSION PERSISTENCE ===== */
     const SKEY = "portalx_session";
     const ADMIN_KEY = "portalx_is_admin";
+    const CREDS_KEY = "portalx_auth_creds";
     const store = {
       get() { try { return sessionStorage.getItem(SKEY) || localStorage.getItem(SKEY) } catch (e) { return null } },
       set(v, keep) { try { (keep ? localStorage : sessionStorage).setItem(SKEY, v) } catch (e) { } },
       getIsAdmin() { try { return (sessionStorage.getItem(ADMIN_KEY) || localStorage.getItem(ADMIN_KEY)) === "true" } catch (e) { return false } },
       setIsAdmin(v, keep) { try { (keep ? localStorage : sessionStorage).setItem(ADMIN_KEY, v ? "true" : "false") } catch (e) { } },
+      saveCredentials(id, pw, keep) {
+        try {
+          const payload = JSON.stringify({ id, pw, savedAt: Date.now() });
+          const encoded = btoa(unescape(encodeURIComponent(payload)));
+          (keep ? localStorage : sessionStorage).setItem(CREDS_KEY, encoded);
+        } catch (e) { }
+      },
+      getCredentials() {
+        try {
+          const raw = sessionStorage.getItem(CREDS_KEY) || localStorage.getItem(CREDS_KEY);
+          if (!raw) return null;
+          const decoded = decodeURIComponent(escape(atob(raw)));
+          return JSON.parse(decoded);
+        } catch (e) {
+          return null;
+        }
+      },
+      clearCredentials() {
+        try {
+          sessionStorage.removeItem(CREDS_KEY);
+          localStorage.removeItem(CREDS_KEY);
+        } catch (e) { }
+      },
       clear() {
         try {
           sessionStorage.removeItem(SKEY);
           localStorage.removeItem(SKEY);
           sessionStorage.removeItem(ADMIN_KEY);
           localStorage.removeItem(ADMIN_KEY);
+          this.clearCredentials();
+          cache.clear();
         } catch (e) { }
       }
     };
     const L = $("#login"), btn = $("#loginBtn"), msg = $("#lgMsg");
 
-    function showApp() {
+    function showApp(isCached = false) {
       document.body.classList.remove("locked");
       L.hidden = true;
       L.classList.remove("out");
+      const cachedProfile = cache.get("profile");
+      if (cachedProfile && cachedProfile.name) {
+        $("#avatar").textContent = initials(cachedProfile.name);
+      }
       route();
-      api.getProfile().then(p => $("#avatar").textContent = initials(p.name)).catch(() => { });
     }
 
     function showAdminApp() {
@@ -3073,7 +3408,7 @@
     }
 
     const fail = (t, ...f) => { msg.textContent = t; msg.scrollIntoView({ block: "nearest" }); f.forEach(x => x.classList.add("bad")); const c = $("#loginForm"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); if ("vibrate" in navigator) navigator.vibrate(60) };
-    
+
     // Auto-capitalize register numbers while preserving natural casing for admin email input
     $("#regNo").addEventListener("input", e => {
       e.target.value = e.target.value.replace(/\s/g, "");
@@ -3088,7 +3423,7 @@
     $("#terms").onclick = () => $("#dTerms").showModal();
     document.querySelectorAll("dialog.sheet").forEach(d => d.addEventListener("click", e => { if (e.target === d || e.target.hasAttribute("data-close")) d.close() }));
     document.querySelectorAll(".lg-tabs button").forEach(b => b.onclick = () => { document.querySelectorAll(".lg-tabs button").forEach(x => x.setAttribute("aria-selected", x === b)); document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === b.dataset.t)) });
-    
+
     $("#loginForm").addEventListener("submit", async e => {
       e.preventDefault();
       const id = $("#regNo").value.trim(), pw = $("#pw").value.trim();
@@ -3129,10 +3464,15 @@
         setTimeout(showAdminApp, 480);
       } else {
         store.setIsAdmin(false, $("#remember").checked);
+        // Persist student credentials for seamless background auto-renewal
+        store.saveCredentials(id, pw, $("#remember").checked);
         btn.classList.add("done");
         $("#loginTxt").textContent = "Welcome back";
         L.classList.add("out");
-        setTimeout(showApp, 480);
+        setTimeout(() => {
+          showApp();
+          syncAllDataInBackground(false);
+        }, 480);
       }
     });
 
@@ -3143,27 +3483,83 @@
       showLogin();
     };
 
-    // Initial check: if server session is active, go directly to appropriate dashboard
-    api.checkStatus().then(status => {
-      if (status && status.isAuthenticated) {
-        if (status.isAdmin || store.getIsAdmin()) {
-          showAdminApp();
-        } else {
-          showApp();
+    /* ===== BACKGROUND SYNC & STALE-WHILE-REVALIDATE ===== */
+    let isSyncing = false;
+    async function syncAllDataInBackground(silent = false) {
+      if (isSyncing || store.getIsAdmin() || document.body.classList.contains("locked")) return;
+      isSyncing = true;
+      if (!silent) syncBanner.show("Fetching new data…");
+
+      try {
+        const [p, t, a, m] = await Promise.all([
+          api.getProfile(true),
+          api.getTimetable(true),
+          api.getAttendance(true),
+          api.getInternalMarks(true)
+        ]);
+
+        if (p && p.name) $("#avatar").textContent = initials(p.name);
+
+        // Re-render current page smoothly with updated data
+        const currentHash = location.hash.slice(1) || "home";
+        if (["home", "attendance", "timetable", "marks", "profile"].includes(currentHash)) {
+          const r = await pages[currentHash]();
+          const view = $("#view");
+          if (view) {
+            if (typeof r === "string") view.innerHTML = r;
+            else { view.innerHTML = r.html; r.after(); }
+          }
         }
-      } else if (store.get()) {
-        if (store.getIsAdmin()) {
-          showAdminApp();
+
+        if (!silent) syncBanner.success("Updated just now");
+      } catch (err) {
+        console.warn("[Sync] Background sync:", err.message);
+        if (cache.get("profile")) {
+          if (!silent) syncBanner.info("Showing cached data");
         } else {
-          api.getProfile().then(showApp).catch(() => {
-            store.clear();
-            showLogin();
-          });
+          syncBanner.hide();
         }
-      } else {
-        showLogin();
+      } finally {
+        isSyncing = false;
       }
-    });
+    }
+
+    // Initial check: instant cached render with background stale-while-revalidate
+    async function initApp() {
+      const savedCreds = store.getCredentials();
+      const cachedProfile = cache.get("profile");
+
+      if (store.getIsAdmin()) {
+        showAdminApp();
+        return;
+      }
+
+      // If user has cached profile or persistent credentials:
+      // Open the dashboard instantly in 0ms!
+      if (cachedProfile || savedCreds) {
+        showApp(true);
+        syncAllDataInBackground(false);
+      } else {
+        // Fallback: check live server session status
+        try {
+          const status = await api.checkStatus();
+          if (status && status.isAuthenticated) {
+            if (status.isAdmin) {
+              showAdminApp();
+            } else {
+              showApp();
+              syncAllDataInBackground(false);
+            }
+          } else {
+            showLogin();
+          }
+        } catch {
+          showLogin();
+        }
+      }
+    }
+
+    initApp();
   </script>
 </body>
 
