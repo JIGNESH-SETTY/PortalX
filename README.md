@@ -301,26 +301,26 @@ All PortalX backend endpoints return standard JSON envelopes with uniform struct
   {
     "ok": true,
     "data": {
-      "name": "S JIGNESH",
-      "studentId": "AP25110010807",
-      "regNo": "AP25110010807",
-      "institution": "School of Engineering and Sciences (College)",
-      "semester": "III SEMESTER",
+      "name": "Name",
+      "studentId": "AP11111111111",
+      "regNo": "AP111111111",
+      "institution": "School of Engineering and Sciences(College)",
+      "semester": "SEMESTER",
       "program": "B.Tech.-Computer Science and Engineering [UG - Full Time]",
-      "section": "A",
+      "section": "Z",
       "programSection": "B.Tech.-Computer Science and Engineering [UG - Full Time] / A",
       "specialization": "",
-      "dob": "13-Dec-2007",
+      "dob": "11-11-1111",
       "gender": "Male",
-      "dobGender": "13-Dec-2007 / Male",
-      "phone": "9100715947",
-      "contactNumber": "9100715947",
+      "dobGender": "11-11-1111/ Male",
+      "phone": "9876543210",
+      "contactNumber": "9876543210",
       "phoneVerified": true,
-      "email": "jignesh_s@srmap.edu.in",
-      "contactEmail": "jignesh_s@srmap.edu.in",
-      "father": "S GURUNADHAM",
-      "mother": "S YASODA",
-      "parentNames": "S GURUNADHAM / S YASODA"
+      "email": "bot_123@srmap.edu.in",
+      "contactEmail": "bot_123",
+      "father": "father name",
+      "mother": "mother name",
+      "parentNames": "father name / mother name"
     }
   }
   ```
