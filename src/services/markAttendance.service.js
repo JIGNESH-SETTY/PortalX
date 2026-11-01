@@ -1,6 +1,7 @@
 import { srmClientService } from './srmClient.service.js';
 import { srmSessionService, MAX_FRIENDS } from './srmSession.service.js';
 import { parseMarkAttendanceHtml } from '../parsers/markAttendance.parser.js';
+import { analyticsService } from './analytics.service.js';
 import { ValidationError } from '../utils/errors.js';
 import { config } from '../config/env.js';
 
@@ -142,6 +143,10 @@ class MarkAttendanceService {
       (typeof srmResponse.result === 'string' &&
         (srmResponse.result.toLowerCase().includes('success') ||
           srmResponse.result.toLowerCase().includes('marked')));
+
+    if (isRecorded) {
+      analyticsService.recordAttendanceMarked(1, cleanCode);
+    }
 
     return {
       ok: isRecorded,

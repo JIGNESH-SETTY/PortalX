@@ -1,0 +1,31 @@
+{
+  "totalClicks": 6,
+  "totalAttendancesMarked": 0,
+  "totalPageViews": 2,
+  "pageViews": {
+    "home": 0,
+    "attendance": 2,
+    "timetable": 0,
+    "marks": 0,
+    "profile": 0,
+    "mark": 0
+  },
+  "monthlyViewers": {
+    "2026-11": [
+      "8747148de9d29063",
+      "4d3fb500e7c75773"
+    ]
+  },
+  "recentActivity": [
+    {
+      "id": "f3ff91c1-d7d8-4ccc-9e47-b2e5fee34c9c",
+      "description": "Viewed Attendance page",
+      "timestamp": 1793536480602
+    },
+    {
+      "id": "5dc9e7d0-cc28-4695-b90c-c0c9f947f989",
+      "description": "Viewed Attendance page",
+      "timestamp": 1793536441412
+    }
+  ]
+}

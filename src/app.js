@@ -14,6 +14,7 @@ import timetableRoutes from './routes/timetable.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import marksRoutes from './routes/marks.routes.js';
 import markAttendanceRoutes from './routes/markAttendance.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,7 @@ export function createApp() {
   app.use('/api/attendance', attendanceRoutes);
   app.use('/api/marks', marksRoutes);
   app.use('/api/mark-attendance', markAttendanceRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {

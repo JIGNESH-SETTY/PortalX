@@ -1951,13 +1951,9 @@
           </div>
         </div>
         <form class="card lg-card" id="loginForm" novalidate>
-          <div class="lg-bar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
-              <path d="M9 12l2 2 4-4" />
-            </svg>Welcome to PortalX — Alternative portal for SRM AP portal</div>
           <div class="lg-f" id="fId"><label for="regNo">Application Number / Register Number</label>
-            <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" maxlength="14"
-                autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false"
+            <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" maxlength="64"
+                autocomplete="username" autocorrect="off" spellcheck="false"
                 enterkeyhint="next" required></div>
           </div>
           <div class="lg-f" id="fPw"><label for="pw">Password</label>
@@ -2073,7 +2069,12 @@
         if (!res.ok || !json.ok) {
           return { ok: false, msg: json.message || 'Login failed.' };
         }
-        return { ok: true, token: json.data?.token || 'session-active', id: json.data?.studentId || username };
+        return {
+          ok: true,
+          token: json.data?.token || 'session-active',
+          id: json.data?.studentId || username,
+          isAdmin: Boolean(json.data?.isAdmin)
+        };
       },
 
       async logout() {
@@ -2088,10 +2089,37 @@
         try {
           const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
           const json = await res.json();
-          return json.ok && json.data?.isAuthenticated;
+          if (json.ok && json.data?.isAuthenticated) {
+            return {
+              isAuthenticated: true,
+              isAdmin: Boolean(json.data?.isAdmin)
+            };
+          }
+          return { isAuthenticated: false, isAdmin: false };
         } catch {
-          return false;
+          return { isAuthenticated: false, isAdmin: false };
         }
+      },
+
+      /**
+       * Retrieve platform telemetry stats (restricted to administrator).
+       */
+      async getAnalyticsStats() {
+        return await this.fetchJson('/api/analytics/stats');
+      },
+
+      /**
+       * Report interaction event (page view or click) to telemetry backend.
+       */
+      async trackEvent(type, data = {}) {
+        try {
+          await fetch('/api/analytics/track', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, ...data })
+          });
+        } catch {}
       },
 
       async submitAttendanceCode(code) {
@@ -2202,7 +2230,7 @@
     /* ===== 2. HELPERS ===== */
     const $ = s => document.querySelector(s);
     const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-    const ICON = { home: '<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', timetable: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', attendance: '<path d="M6 3h12M6 21h12M8 3c0 6 4 6 4 9s-4 3-4 9M16 3c0 6-4 6-4 9s4 3 4 9"/>', marks: '<path d="M5 20V10M12 20V4M19 20v-7"/>', mark: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>' };
+    const ICON = { home: '<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', timetable: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', attendance: '<path d="M6 3h12M6 21h12M8 3c0 6 4 6 4 9s-4 3-4 9M16 3c0 6-4 6-4 9s4 3 4 9"/>', marks: '<path d="M5 20V10M12 20V4M19 20v-7"/>', mark: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>', admin: '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>' };
     const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
     const SUBJ_COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
     let SUBJ_CODES = [];
@@ -2751,85 +2779,363 @@
           }
         }
       };
+    },
+    async admin() {
+      return {
+        html: `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <h1>Analytics</h1>
+            <span class="pill" style="font-weight:700;--c:var(--ok)">Live System Data</span>
+          </div>
+          <p class="sub">PortalX usage metrics, monthly viewers, and student activity telemetry.</p>
+
+          <div id="adminContent">
+            <div class="skel" style="padding:24px;margin-top:14px">Loading live telemetry metrics…</div>
+          </div>
+        `,
+        after() {
+          const container = $("#adminContent");
+          const loadStats = async () => {
+            try {
+              const stats = await api.getAnalyticsStats();
+              const totalPV = Math.max(1, stats.totalPageViews || 0);
+
+              const pageList = [
+                { key: 'attendance', label: 'Attendance Breakdown', count: stats.pageViews?.attendance || 0, color: 'var(--s1)' },
+                { key: 'timetable', label: 'Timetable Schedule', count: stats.pageViews?.timetable || 0, color: 'var(--s2)' },
+                { key: 'marks', label: 'Internal Marks', count: stats.pageViews?.marks || 0, color: 'var(--s3)' },
+                { key: 'mark', label: 'Mark Attendance Page', count: stats.pageViews?.mark || 0, color: 'var(--s4)' },
+                { key: 'home', label: 'Dashboard Home', count: stats.pageViews?.home || 0, color: 'var(--p)' },
+                { key: 'profile', label: 'Student Profile', count: stats.pageViews?.profile || 0, color: 'var(--ok)' }
+              ];
+
+              const timeAgo = (ts) => {
+                const s = Math.floor((Date.now() - ts) / 1000);
+                if (s < 60) return `${s}s ago`;
+                const m = Math.floor(s / 60);
+                if (m < 60) return `${m}m ago`;
+                const h = Math.floor(m / 60);
+                if (h < 24) return `${h}h ago`;
+                return `${Math.floor(h / 24)}d ago`;
+              };
+
+              container.innerHTML = `
+                <!-- 2x2 Mobile Analytics Grid -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
+                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                      <span style="font-size:18px">👥</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Viewers</span>
+                    </div>
+                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                      ${fmt(stats.viewersThisMonth)}
+                    </div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">${esc(stats.currentMonth)}</div>
+                  </div>
+
+                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                      <span style="font-size:18px">🖱️</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Clicks</span>
+                    </div>
+                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                      ${fmt(stats.totalClicks)}
+                    </div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">User interactions</div>
+                  </div>
+
+                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                      <span style="font-size:18px">📝</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Marked</span>
+                    </div>
+                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ok)">
+                      ${fmt(stats.totalAttendancesMarked)}
+                    </div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">Classes submitted</div>
+                  </div>
+
+                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                      <span style="font-size:18px">📄</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Pageviews</span>
+                    </div>
+                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                      ${fmt(stats.totalPageViews)}
+                    </div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">Total page opens</div>
+                  </div>
+                </div>
+
+                <!-- Page Views Breakdown Card -->
+                <div class="card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                    <h2 style="margin:0">Pages Viewed</h2>
+                    <span class="pill" style="font-size:12px;font-weight:700">${fmt(stats.totalPageViews)} Total</span>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    ${pageList.map(p => {
+                      const pct = Math.round((p.count / totalPV) * 100);
+                      return `
+                        <div>
+                          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+                            <span style="font-weight:600">${esc(p.label)}</span>
+                            <span><b>${fmt(p.count)}</b> <small class="muted">(${pct}%)</small></span>
+                          </div>
+                          <div style="height:8px;background:var(--chip);border-radius:4px;overflow:hidden">
+                            <i style="width:${Math.max(pct, p.count > 0 ? 3 : 0)}%;background:${p.color};height:100%;display:block;border-radius:4px"></i>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+
+                <!-- Recent Activity Feed -->
+                <div class="card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <h2 style="margin:0">Recent Activity</h2>
+                    <button type="button" class="go" id="btnRefreshStats" style="height:32px;padding:0 14px;font-size:12px;border-radius:10px">↻ Refresh</button>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    ${(!stats.recentActivity || stats.recentActivity.length === 0)
+                      ? '<p class="muted">No student activity logged yet.</p>'
+                      : stats.recentActivity.map(act => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">
+                          <span style="font-weight:500">${esc(act.description)}</span>
+                          <span class="muted" style="font-size:11.5px">${timeAgo(act.timestamp)}</span>
+                        </div>
+                      `).join('')}
+                  </div>
+                </div>
+              `;
+
+              const btnRefresh = $("#btnRefreshStats");
+              if (btnRefresh) {
+                btnRefresh.onclick = () => {
+                  btnRefresh.disabled = true;
+                  btnRefresh.textContent = "Updating…";
+                  loadStats();
+                };
+              }
+            } catch (err) {
+              container.innerHTML = `
+                <div class="fail">
+                  <p class="bad">Failed to load analytics: ${esc(err.message)}</p>
+                  <button class="go" id="btnRetryStats" style="margin-top:10px">Retry</button>
+                </div>
+              `;
+              const btnRetry = $("#btnRetryStats");
+              if (btnRetry) btnRetry.onclick = loadStats;
+            }
+          };
+
+          loadStats();
+        }
+      };
     }
   };
     const NAV = [["home", "Dashboard", "Home"], ["profile", "Profile", "Profile"], ["timetable", "Timetable", "Timetable"], ["attendance", "Attendance", "Attendance"], ["marks", "Internal marks", "Marks"], ["mark", "Mark attendance", "Mark in"]];
 
     /* ===== 4. ROUTER ===== */
     function buildNav(cur) {
+      const isAdmin = store.getIsAdmin() || cur === "admin";
       const side = $(".side");
       if (side) {
-        if (!side.children.length) {
+        if (isAdmin) {
+          side.innerHTML = `<span class="brand">Portal<b>X</b> <small style="font-size:12px;color:var(--p)">Admin</small></span><a href="#admin" aria-current="page">${ic("admin")}Analytics</a>`;
+        } else {
           side.innerHTML = `<span class="brand">Portal<b>X</b></span>` + NAV.map(n => `<a href="#${n[0]}">${ic(n[0])}${n[1]}</a>`).join("");
+          side.querySelectorAll("a").forEach(a => {
+            if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
+            else a.removeAttribute("aria-current");
+          });
         }
-        side.querySelectorAll("a").forEach(a => {
-          if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
-          else a.removeAttribute("aria-current");
-        });
       }
 
       const bottom = $(".bottom");
       if (bottom) {
-        if (!bottom.children.length) {
+        if (isAdmin) {
+          bottom.innerHTML = `<a href="#admin" aria-current="page">${ic("admin")}<span>Analytics</span></a><a href="#logout" id="bottomAdminLogout">${ic("home")}<span>Logout</span></a>`;
+          const bottomLogout = $("#bottomAdminLogout");
+          if (bottomLogout) {
+            bottomLogout.onclick = (e) => { e.preventDefault(); $("#logout").click(); };
+          }
+        } else {
           bottom.innerHTML = NAV.filter(n => n[0] !== "profile").map(n => `<a href="#${n[0]}" aria-label="${n[1]}">${ic(n[0])}<span>${n[2]}</span></a>`).join("");
+          bottom.querySelectorAll("a").forEach(a => {
+            if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
+            else a.removeAttribute("aria-current");
+          });
         }
-        bottom.querySelectorAll("a").forEach(a => {
-          if (a.getAttribute("href") === `#${cur}`) a.setAttribute("aria-current", "page");
-          else a.removeAttribute("aria-current");
-        });
       }
     }
 
     async function route() {
       if (document.body.classList.contains("locked")) return;
-      const key = (location.hash.slice(1) in pages) ? location.hash.slice(1) : "home", view = $("#view");
-      buildNav(key); document.title = "PortalX · " + NAV.find(n => n[0] === key)[1]; scrollTo(0, 0); view.innerHTML = '<div class="skel">Loading…</div>';
-      try { const r = await pages[key](); if (typeof r === "string") view.innerHTML = r; else { view.innerHTML = r.html; r.after() }; view.classList.remove("anim-in"); void view.offsetWidth; view.classList.add("anim-in"); }
-      catch (e) { console.error(e); view.innerHTML = failBox(); $("#retry").onclick = route }
+      const isAdmin = store.getIsAdmin();
+      let key = location.hash.slice(1);
+      if (isAdmin) {
+        key = "admin";
+      } else if (!(key in pages) || key === "admin") {
+        key = "home";
+      }
+      const view = $("#view");
+      buildNav(key);
+      document.title = "PortalX · " + (key === "admin" ? "Admin Analytics" : (NAV.find(n => n[0] === key) ? NAV.find(n => n[0] === key)[1] : "Dashboard"));
+      scrollTo(0, 0);
+      view.innerHTML = '<div class="skel">Loading…</div>';
+      try {
+        const r = await pages[key]();
+        if (typeof r === "string") view.innerHTML = r;
+        else { view.innerHTML = r.html; r.after(); }
+        view.classList.remove("anim-in"); void view.offsetWidth; view.classList.add("anim-in");
+        if (!isAdmin) {
+          api.trackEvent("pageview", { page: key });
+        }
+      } catch (e) {
+        console.error(e);
+        view.innerHTML = failBox();
+        $("#retry").onclick = route;
+      }
     }
     addEventListener("hashchange", route);
     const toggleTheme = () => { const d = document.documentElement, dark = getComputedStyle(d).getPropertyValue("--bg").trim() === "#060a12"; d.dataset.theme = dark ? "light" : "dark" };
     $("#theme").onclick = $("#theme2").onclick = toggleTheme;
 
+    // Batched click listener to record interactions smoothly without UI lag
+    let clickCountBuffer = 0;
+    let clickFlushTimer = null;
+    document.addEventListener("click", () => {
+      if (document.body.classList.contains("locked") || store.getIsAdmin()) return;
+      clickCountBuffer++;
+      if (!clickFlushTimer) {
+        clickFlushTimer = setTimeout(() => {
+          const count = clickCountBuffer;
+          clickCountBuffer = 0;
+          clickFlushTimer = null;
+          api.trackEvent("click", { count });
+        }, 3000);
+      }
+    }, { passive: true });
+
     /* ===== 5. LOGIN ===== */
     const SKEY = "portalx_session";
+    const ADMIN_KEY = "portalx_is_admin";
     const store = {
       get() { try { return sessionStorage.getItem(SKEY) || localStorage.getItem(SKEY) } catch (e) { return null } },
       set(v, keep) { try { (keep ? localStorage : sessionStorage).setItem(SKEY, v) } catch (e) { } },
-      clear() { try { sessionStorage.removeItem(SKEY); localStorage.removeItem(SKEY) } catch (e) { } }
+      getIsAdmin() { try { return (sessionStorage.getItem(ADMIN_KEY) || localStorage.getItem(ADMIN_KEY)) === "true" } catch (e) { return false } },
+      setIsAdmin(v, keep) { try { (keep ? localStorage : sessionStorage).setItem(ADMIN_KEY, v ? "true" : "false") } catch (e) { } },
+      clear() {
+        try {
+          sessionStorage.removeItem(SKEY);
+          localStorage.removeItem(SKEY);
+          sessionStorage.removeItem(ADMIN_KEY);
+          localStorage.removeItem(ADMIN_KEY);
+        } catch (e) { }
+      }
     };
     const L = $("#login"), btn = $("#loginBtn"), msg = $("#lgMsg");
+
     function showApp() {
-      document.body.classList.remove("locked"); L.hidden = true; L.classList.remove("out");
-      route(); api.getProfile().then(p => $("#avatar").textContent = initials(p.name)).catch(() => { });
+      document.body.classList.remove("locked");
+      L.hidden = true;
+      L.classList.remove("out");
+      route();
+      api.getProfile().then(p => $("#avatar").textContent = initials(p.name)).catch(() => { });
     }
+
+    function showAdminApp() {
+      document.body.classList.remove("locked");
+      L.hidden = true;
+      L.classList.remove("out");
+      location.hash = "admin";
+      buildNav("admin");
+      document.title = "PortalX · Admin Analytics";
+      $("#avatar").textContent = "AD";
+      $("#avatar").setAttribute("href", "#admin");
+      $("#avatar").setAttribute("title", "Administrator");
+      route();
+    }
+
     function showLogin() {
-      document.body.classList.add("locked"); L.hidden = false; L.classList.remove("out");
-      $("#pw").value = ""; btn.className = "go"; $("#loginTxt").textContent = "Login"; btn.disabled = false; msg.textContent = "";
+      document.body.classList.add("locked");
+      L.hidden = false;
+      L.classList.remove("out");
+      $("#pw").value = "";
+      btn.className = "go";
+      $("#loginTxt").textContent = "Login";
+      btn.disabled = false;
+      msg.textContent = "";
     }
+
     const fail = (t, ...f) => { msg.textContent = t; msg.scrollIntoView({ block: "nearest" }); f.forEach(x => x.classList.add("bad")); const c = $("#loginForm"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); if ("vibrate" in navigator) navigator.vibrate(60) };
-    $("#regNo").addEventListener("input", e => { e.target.value = e.target.value.replace(/\s/g, "").toUpperCase() });
+    
+    // Auto-capitalize register numbers while preserving lowercase for admin email input
+    $("#regNo").addEventListener("input", e => {
+      e.target.value = e.target.value.replace(/\s/g, "");
+      if (!e.target.value.includes("@")) {
+        e.target.value = e.target.value.toUpperCase();
+      }
+    });
+
     ["regNo", "pw"].forEach(id => $("#" + id).addEventListener("input", () => { $("#fId").classList.remove("bad"); $("#fPw").classList.remove("bad"); msg.textContent = "" }));
     $("#eye").onclick = e => { const b = e.currentTarget, p = $("#pw"), show = p.type === "password"; p.type = show ? "text" : "password"; b.classList.toggle("on", show); b.setAttribute("aria-label", show ? "Hide password" : "Show password") };
     if ($("#forgot") && $("#dForgot")) $("#forgot").onclick = () => $("#dForgot").showModal();
     $("#terms").onclick = () => $("#dTerms").showModal();
     document.querySelectorAll("dialog.sheet").forEach(d => d.addEventListener("click", e => { if (e.target === d || e.target.hasAttribute("data-close")) d.close() }));
     document.querySelectorAll(".lg-tabs button").forEach(b => b.onclick = () => { document.querySelectorAll(".lg-tabs button").forEach(x => x.setAttribute("aria-selected", x === b)); document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === b.dataset.t)) });
+    
     $("#loginForm").addEventListener("submit", async e => {
       e.preventDefault();
       const id = $("#regNo").value.trim(), pw = $("#pw").value.trim();
+      const isAdminLogin = id.toLowerCase() === "jignesh.setty@gmail.com";
+
       if (!id) return fail("Enter your Application Number / Register Number.", $("#fId"));
-      if (!/^ap/i.test(id)) return fail("Register Number must start with AP.", $("#fId"));
-      if (!/^ap\d{11,12}$/i.test(id)) return fail("Enter AP followed by 11 or 12 digits (13 to 14 characters in total).", $("#fId"));
+      if (!isAdminLogin) {
+        if (!/^ap/i.test(id)) return fail("Register Number must start with AP.", $("#fId"));
+        if (!/^ap\d{11,12}$/i.test(id)) return fail("Enter AP followed by 11 or 12 digits (13 to 14 characters in total).", $("#fId"));
+      }
       if (!pw) return fail("Enter your password.", $("#fPw"));
-      msg.textContent = ""; btn.disabled = true; btn.classList.add("busy"); $("#loginTxt").textContent = "Signing in…";
-      let r; try { r = await api.login(id, pw) } catch (err) { r = { ok: false, msg: "Can’t reach the server. Check your connection and try again." } }
+
+      msg.textContent = "";
+      btn.disabled = true;
+      btn.classList.add("busy");
+      $("#loginTxt").textContent = "Signing in…";
+
+      let r;
+      try {
+        r = await api.login(id, pw);
+      } catch (err) {
+        r = { ok: false, msg: "Can’t reach the server. Check your connection and try again." };
+      }
+
       btn.classList.remove("busy");
-      if (!r.ok) { btn.disabled = false; $("#loginTxt").textContent = "Login"; return fail(r.msg || "Login failed.", $("#fId"), $("#fPw")) }
+      if (!r.ok) {
+        btn.disabled = false;
+        $("#loginTxt").textContent = "Login";
+        return fail(r.msg || "Login failed.", $("#fId"), $("#fPw"));
+      }
+
       store.set(r.token, $("#remember").checked);
-      btn.classList.add("done"); $("#loginTxt").textContent = "Welcome back";
-      L.classList.add("out"); setTimeout(showApp, 480);
+      if (r.isAdmin) {
+        store.setIsAdmin(true, $("#remember").checked);
+        btn.classList.add("done");
+        $("#loginTxt").textContent = "Welcome Admin";
+        L.classList.add("out");
+        setTimeout(showAdminApp, 480);
+      } else {
+        store.setIsAdmin(false, $("#remember").checked);
+        btn.classList.add("done");
+        $("#loginTxt").textContent = "Welcome back";
+        L.classList.add("out");
+        setTimeout(showApp, 480);
+      }
     });
+
     $("#logout").onclick = async () => {
       await api.logout();
       store.clear();
@@ -2837,16 +3143,23 @@
       showLogin();
     };
 
-    // Initial check: if server session is active, go directly to app
-    api.checkStatus().then(isActive => {
-      if (isActive) {
-        showApp();
+    // Initial check: if server session is active, go directly to appropriate dashboard
+    api.checkStatus().then(status => {
+      if (status && status.isAuthenticated) {
+        if (status.isAdmin || store.getIsAdmin()) {
+          showAdminApp();
+        } else {
+          showApp();
+        }
       } else if (store.get()) {
-        // If client had a token, verify with profile fetch
-        api.getProfile().then(showApp).catch(() => {
-          store.clear();
-          showLogin();
-        });
+        if (store.getIsAdmin()) {
+          showAdminApp();
+        } else {
+          api.getProfile().then(showApp).catch(() => {
+            store.clear();
+            showLogin();
+          });
+        }
       } else {
         showLogin();
       }

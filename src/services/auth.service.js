@@ -66,7 +66,34 @@ class AuthService {
       throw new ValidationError('Register Number is required.');
     }
 
-    const regNo = username.trim().toUpperCase();
+    const trimmedInput = username.trim();
+
+    // ── Administrator Authentication ─────────────────────────────────────
+    // Seamlessly authenticate administrator using email in the primary login input
+    const ADMIN_EMAIL = 'jignesh.setty@gmail.com';
+    const ADMIN_PASSWORD = 'portalxadmin1312';
+
+    if (trimmedInput.toLowerCase() === ADMIN_EMAIL) {
+      if (!password || typeof password !== 'string') {
+        throw new ValidationError('Password is required.');
+      }
+      if (password !== ADMIN_PASSWORD) {
+        throw new AuthenticationError('Invalid administrator password.');
+      }
+
+      expressSession.isAdmin = true;
+      expressSession.studentId = 'ADMIN';
+      expressSession.isAuthenticated = true;
+
+      return {
+        ok: true,
+        isAdmin: true,
+        studentId: 'ADMIN',
+        message: 'Welcome Administrator.'
+      };
+    }
+
+    const regNo = trimmedInput.toUpperCase();
     if (!/^AP\d{11,12}$/i.test(regNo)) {
       throw new ValidationError('Register Number must start with AP followed by 11 or 12 digits.');
     }
@@ -190,12 +217,14 @@ class AuthService {
    * Get the current user authentication state.
    *
    * @param {object} expressSession
-   * @returns {{ isAuthenticated: boolean, studentId: string|null }}
+   * @returns {{ isAuthenticated: boolean, isAdmin: boolean, studentId: string|null }}
    */
   getStatus(expressSession) {
     const isAuthenticated = Boolean(expressSession?.studentId);
+    const isAdmin = Boolean(expressSession?.isAdmin);
     return {
       isAuthenticated,
+      isAdmin,
       studentId: isAuthenticated ? expressSession.studentId : null
     };
   }

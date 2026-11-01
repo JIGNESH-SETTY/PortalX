@@ -27,6 +27,7 @@ export const authController = {
       ok: true,
       data: {
         studentId: result.studentId,
+        isAdmin: Boolean(result.isAdmin),
         token: req.sessionID
       },
       message: result.message

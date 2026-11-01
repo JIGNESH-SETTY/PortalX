@@ -21,3 +21,14 @@ export function requireAuth(req, res, next) {
   throw new AuthenticationError('Authentication required. Please sign in with your SRM credentials.');
 }
 
+/**
+ * Middleware to enforce administrator authentication.
+ * Verifies that the Express session contains an active admin flag.
+ */
+export function requireAdmin(req, res, next) {
+  if (req.session && req.session.isAdmin) {
+    return next();
+  }
+  throw new AuthenticationError('Administrator access required.');
+}
+
