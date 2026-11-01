@@ -3091,9 +3091,9 @@
           html: `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <h1>Analytics</h1>
-            <span class="pill" style="font-weight:700;--c:var(--ok)">Live System Data</span>
+            <span class="pill" style="font-weight:700;--c:var(--ok)">● Live Telemetry</span>
           </div>
-          <p class="sub">PortalX usage metrics, monthly viewers, and student activity telemetry.</p>
+          <p class="sub">PortalX student logins, interactions & section analytics.</p>
 
           <div id="adminContent">
             <div class="skel" style="padding:24px;margin-top:14px">Loading live telemetry metrics…</div>
@@ -3101,7 +3101,7 @@
         `,
           after() {
             const container = $("#adminContent");
-            const loadStats = async () => {
+            const loadStats = async (isSilent = false) => {
               try {
                 const stats = await api.getAnalyticsStats();
                 const totalPV = Math.max(1, stats.totalPageViews || 0);
@@ -3115,28 +3115,39 @@
                   { key: 'profile', label: 'Student Profile', count: stats.pageViews?.profile || 0, color: 'var(--ok)' }
                 ];
 
-                const timeAgo = (ts) => {
-                  const s = Math.floor((Date.now() - ts) / 1000);
-                  if (s < 60) return `${s}s ago`;
-                  const m = Math.floor(s / 60);
-                  if (m < 60) return `${m}m ago`;
-                  const h = Math.floor(m / 60);
-                  if (h < 24) return `${h}h ago`;
-                  return `${Math.floor(h / 24)}d ago`;
-                };
-
                 container.innerHTML = `
-                <!-- 2x2 Mobile Analytics Grid -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
+                <!-- Action Controls Row -->
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px">
+                  <button type="button" class="go" id="btnRefreshStats" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:var(--chip);color:var(--ink);border:1px solid var(--line);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
+                    ↻ Refresh
+                  </button>
+                  <button type="button" class="go" id="btnResetStats" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:color-mix(in srgb, var(--bad) 12%, var(--card));color:var(--bad);border:1px solid var(--bad);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
+                    🗑️ Reset Counts
+                  </button>
+                </div>
+
+                <!-- 2x2 Mobile Analytics Metric Cards -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
                   <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
                       <span style="font-size:18px">👥</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Viewers</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Total Visitors</span>
                     </div>
-                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
-                      ${fmt(stats.viewersThisMonth)}
+                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                      ${Number(stats.totalVisitors || 0).toLocaleString()}
                     </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">${esc(stats.currentMonth)}</div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">All-time logins</div>
+                  </div>
+
+                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                      <span style="font-size:18px">📅</span>
+                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Visitors Today</span>
+                    </div>
+                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--p)">
+                      ${Number(stats.todayVisitors || 0).toLocaleString()}
+                    </div>
+                    <div class="muted" style="font-size:11px;margin-top:5px">Resets daily at midnight</div>
                   </div>
 
                   <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
@@ -3144,8 +3155,8 @@
                       <span style="font-size:18px">🖱️</span>
                       <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Clicks</span>
                     </div>
-                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
-                      ${fmt(stats.totalClicks)}
+                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                      ${Number(stats.totalClicks || 0).toLocaleString()}
                     </div>
                     <div class="muted" style="font-size:11px;margin-top:5px">User interactions</div>
                   </div>
@@ -3155,21 +3166,10 @@
                       <span style="font-size:18px">📝</span>
                       <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Marked</span>
                     </div>
-                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ok)">
-                      ${fmt(stats.totalAttendancesMarked)}
+                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ok)">
+                      ${Number(stats.totalAttendancesMarked || 0).toLocaleString()}
                     </div>
                     <div class="muted" style="font-size:11px;margin-top:5px">Classes submitted</div>
-                  </div>
-
-                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                      <span style="font-size:18px">📄</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Pageviews</span>
-                    </div>
-                    <div style="font-size:30px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
-                      ${fmt(stats.totalPageViews)}
-                    </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">Total page opens</div>
                   </div>
                 </div>
 
@@ -3177,43 +3177,24 @@
                 <div class="card">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
                     <h2 style="margin:0">Pages Viewed</h2>
-                    <span class="pill" style="font-size:12px;font-weight:700">${fmt(stats.totalPageViews)} Total</span>
+                    <span class="pill" style="font-size:12px;font-weight:700">${Number(stats.totalPageViews || 0).toLocaleString()} Total Views</span>
                   </div>
 
                   <div style="display:flex;flex-direction:column;gap:12px">
                     ${pageList.map(p => {
-                  const pct = Math.round((p.count / totalPV) * 100);
-                  return `
+                      const pct = stats.totalPageViews > 0 ? Math.round((p.count / stats.totalPageViews) * 100) : 0;
+                      return `
                         <div>
                           <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
                             <span style="font-weight:600">${esc(p.label)}</span>
-                            <span><b>${fmt(p.count)}</b> <small class="muted">(${pct}%)</small></span>
+                            <span><b>${Number(p.count || 0).toLocaleString()}</b> <small class="muted">(${pct}%)</small></span>
                           </div>
                           <div style="height:8px;background:var(--chip);border-radius:4px;overflow:hidden">
                             <i style="width:${Math.max(pct, p.count > 0 ? 3 : 0)}%;background:${p.color};height:100%;display:block;border-radius:4px"></i>
                           </div>
                         </div>
                       `;
-                }).join('')}
-                  </div>
-                </div>
-
-                <!-- Recent Activity Feed -->
-                <div class="card">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                    <h2 style="margin:0">Recent Activity</h2>
-                    <button type="button" class="go" id="btnRefreshStats" style="height:32px;padding:0 14px;font-size:12px;border-radius:10px">↻ Refresh</button>
-                  </div>
-
-                  <div style="display:flex;flex-direction:column;gap:8px">
-                    ${(!stats.recentActivity || stats.recentActivity.length === 0)
-                    ? '<p class="muted">No student activity logged yet.</p>'
-                    : stats.recentActivity.map(act => `
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">
-                          <span style="font-weight:500">${esc(act.description)}</span>
-                          <span class="muted" style="font-size:11.5px">${timeAgo(act.timestamp)}</span>
-                        </div>
-                      `).join('')}
+                    }).join('')}
                   </div>
                 </div>
               `;
@@ -3226,19 +3207,44 @@
                     loadStats();
                   };
                 }
+
+                const btnReset = $("#btnResetStats");
+                if (btnReset) {
+                  btnReset.onclick = async () => {
+                    const confirmed = confirm("Are you sure you want to reset all analytics counters to 0? This will zero out Total Visitors, Visitors Today, Clicks, and Page Views.");
+                    if (!confirmed) return;
+                    btnReset.disabled = true;
+                    btnReset.textContent = "Resetting…";
+                    try {
+                      await api.resetAnalyticsStats();
+                      await loadStats();
+                    } catch (err) {
+                      alert("Failed to reset counts: " + (err.message || "Unknown error"));
+                      btnReset.disabled = false;
+                      btnReset.textContent = "🗑️ Reset Counts";
+                    }
+                  };
+                }
               } catch (err) {
-                container.innerHTML = `
-                <div class="fail">
-                  <p class="bad">Failed to load analytics: ${esc(err.message)}</p>
-                  <button class="go" id="btnRetryStats" style="margin-top:10px">Retry</button>
-                </div>
-              `;
-                const btnRetry = $("#btnRetryStats");
-                if (btnRetry) btnRetry.onclick = loadStats;
+                if (!isSilent) {
+                  container.innerHTML = `<div class="card err" style="margin:14px 0">Unable to load analytics stats.<br><br><button class="go" id="retryAdminStats">Retry</button></div>`;
+                  $("#retryAdminStats").onclick = () => loadStats();
+                }
               }
             };
 
             loadStats();
+
+            // Lively auto-refresh: Poll stats every 4 seconds while admin is viewing the page
+            if (window.adminLiveTimer) clearInterval(window.adminLiveTimer);
+            window.adminLiveTimer = setInterval(() => {
+              if (location.hash === "#admin" && !document.hidden && !document.body.classList.contains("locked")) {
+                loadStats(true);
+              } else {
+                clearInterval(window.adminLiveTimer);
+                window.adminLiveTimer = null;
+              }
+            }, 4000);
           }
         };
       }

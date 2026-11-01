@@ -9,15 +9,11 @@ export const analyticsController = {
    */
   async track(req, res) {
     const { type, page, count } = req.body || {};
-    const clientIdentifier = req.sessionID || req.ip;
 
     if (type === 'pageview') {
-      analyticsService.recordPageView(page || 'home', clientIdentifier);
+      analyticsService.recordPageView(page || 'home');
     } else if (type === 'click') {
       analyticsService.recordClicks(count || 1);
-    } else {
-      // General ping / viewer registration
-      analyticsService.recordViewer(clientIdentifier);
     }
 
     res.status(200).json({ ok: true });
@@ -35,6 +31,21 @@ export const analyticsController = {
       ok: true,
       data: stats,
       message: null
+    });
+  },
+
+  /**
+   * Reset all analytics counters to zero (restricted to administrator).
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   */
+  async reset(req, res) {
+    const stats = analyticsService.resetStats();
+    res.status(200).json({
+      ok: true,
+      data: stats,
+      message: 'All analytics counters have been reset to 0.'
     });
   }
 };

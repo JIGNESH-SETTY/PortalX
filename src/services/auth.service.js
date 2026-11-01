@@ -1,6 +1,7 @@
 import { srmSessionService } from './srmSession.service.js';
 import { srmClientService } from './srmClient.service.js';
 import { captchaService } from './captcha.service.js';
+import { analyticsService } from './analytics.service.js';
 import { config } from '../config/env.js';
 import { ValidationError, AuthenticationError } from '../utils/errors.js';
 
@@ -114,6 +115,7 @@ class AuthService {
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
       expressSession.savedCredentials = { username: regNo, password };
+      analyticsService.recordSuccessfulLogin();
       return {
         ok: true,
         studentId: regNo,
@@ -126,6 +128,7 @@ class AuthService {
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
       expressSession.savedCredentials = { username: regNo, password };
+      analyticsService.recordSuccessfulLogin();
       return {
         ok: true,
         studentId: regNo,
@@ -159,6 +162,9 @@ class AuthService {
         expressSession.studentId = regNo;
         expressSession.isAuthenticated = true;
         expressSession.savedCredentials = { username: regNo, password };
+        if (!params?.isAutoRenew) {
+          analyticsService.recordSuccessfulLogin();
+        }
         return {
           ok: true,
           studentId: regNo,

@@ -11,4 +11,7 @@ router.post('/track', asyncHandler(analyticsController.track));
 // Retrieve full analytics data (restricted to administrator)
 router.get('/stats', requireAdmin, asyncHandler(analyticsController.getStats));
 
+// Reset all analytics counters to zero (restricted to administrator)
+router.post('/reset', requireAdmin, asyncHandler(analyticsController.reset));
+
 export default router;

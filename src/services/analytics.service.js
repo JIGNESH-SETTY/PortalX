@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,15 +7,22 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const ANALYTICS_FILE = path.join(DATA_DIR, 'analytics.json');
 
+/** Timezone used to evaluate midnight day changes (SRM University-AP is in IST) */
+const TIMEZONE = 'Asia/Kolkata';
+
 /**
  * Service to record and retrieve user interaction analytics.
- * Tracks unique monthly viewers, total clicks, attendance submissions,
- * and granular per-page view statistics.
+ * Tracks total visitors (successful logins), visitors today (resets on day change),
+ * user clicks, attendances marked, and per-page view statistics.
+ * No unbounded activity logs are retained.
  */
 class AnalyticsService {
   constructor() {
-    /** In-memory store */
+    /** In-memory telemetry state */
     this.data = {
+      totalVisitors: 0,
+      todayVisitors: 0,
+      todayDate: this.getCurrentDateKey(),
       totalClicks: 0,
       totalAttendancesMarked: 0,
       totalPageViews: 0,
@@ -27,9 +33,7 @@ class AnalyticsService {
         marks: 0,
         profile: 0,
         mark: 0
-      },
-      monthlyViewers: {},
-      recentActivity: []
+      }
     };
 
     this.saveTimeout = null;
@@ -37,7 +41,34 @@ class AnalyticsService {
   }
 
   /**
-   * Initialize data directory and load existing analytics from disk if available.
+   * Get current date in YYYY-MM-DD format in SRM AP Indian Standard Time.
+   *
+   * @returns {string} e.g. "2026-11-01"
+   */
+  getCurrentDateKey() {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  }
+
+  /**
+   * Verify if the calendar day has changed. If midnight has passed,
+   * reset the todayVisitors counter to zero while keeping totalVisitors intact.
+   */
+  checkAndResetDayRollover() {
+    const currentDate = this.getCurrentDateKey();
+    if (this.data.todayDate !== currentDate) {
+      this.data.todayDate = currentDate;
+      this.data.todayVisitors = 0;
+      this.scheduleSave();
+    }
+  }
+
+  /**
+   * Initialize data directory and load existing counters from disk if available.
    */
   init() {
     try {
@@ -49,15 +80,23 @@ class AnalyticsService {
         const raw = fs.readFileSync(ANALYTICS_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         this.data = {
-          ...this.data,
-          ...parsed,
+          totalVisitors: Number(parsed.totalVisitors) || 0,
+          todayVisitors: Number(parsed.todayVisitors) || 0,
+          todayDate: parsed.todayDate || this.getCurrentDateKey(),
+          totalClicks: Number(parsed.totalClicks) || 0,
+          totalAttendancesMarked: Number(parsed.totalAttendancesMarked) || 0,
+          totalPageViews: Number(parsed.totalPageViews) || 0,
           pageViews: {
-            ...this.data.pageViews,
-            ...(parsed.pageViews || {})
-          },
-          monthlyViewers: parsed.monthlyViewers || {},
-          recentActivity: parsed.recentActivity || []
+            home: Number(parsed.pageViews?.home) || 0,
+            attendance: Number(parsed.pageViews?.attendance) || 0,
+            timetable: Number(parsed.pageViews?.timetable) || 0,
+            marks: Number(parsed.pageViews?.marks) || 0,
+            profile: Number(parsed.pageViews?.profile) || 0,
+            mark: Number(parsed.pageViews?.mark) || 0
+          }
         };
+        // Verify day rollover on server startup
+        this.checkAndResetDayRollover();
       } else {
         this.saveImmediately();
       }
@@ -67,7 +106,7 @@ class AnalyticsService {
   }
 
   /**
-   * Persist current in-memory stats to disk with debouncing.
+   * Persist current in-memory counters to disk with debouncing.
    */
   scheduleSave() {
     if (this.saveTimeout) return;
@@ -78,7 +117,7 @@ class AnalyticsService {
   }
 
   /**
-   * Write data synchronously or immediately to disk.
+   * Write data synchronously to disk.
    */
   saveImmediately() {
     try {
@@ -92,50 +131,22 @@ class AnalyticsService {
   }
 
   /**
-   * Get current month identifier in YYYY-MM format.
-   * @returns {string} e.g. "2026-11"
+   * Record a successful student login.
+   * Increments both totalVisitors (all-time) and todayVisitors (today count).
    */
-  getCurrentMonthKey() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
+  recordSuccessfulLogin() {
+    this.checkAndResetDayRollover();
+    this.data.totalVisitors = (this.data.totalVisitors || 0) + 1;
+    this.data.todayVisitors = (this.data.todayVisitors || 0) + 1;
+    this.scheduleSave();
   }
 
   /**
-   * Get human readable current month name.
-   * @returns {string} e.g. "November 2026"
-   */
-  getCurrentMonthName() {
-    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  }
-
-  /**
-   * Register a unique viewer for the current month.
-   *
-   * @param {string} [identifier] - Client IP, session ID, or identifier
-   */
-  recordViewer(identifier) {
-    if (!identifier) return;
-    const month = this.getCurrentMonthKey();
-    if (!this.data.monthlyViewers[month]) {
-      this.data.monthlyViewers[month] = [];
-    }
-
-    const hashed = crypto.createHash('sha256').update(String(identifier)).digest('hex').slice(0, 16);
-    if (!this.data.monthlyViewers[month].includes(hashed)) {
-      this.data.monthlyViewers[month].push(hashed);
-      this.scheduleSave();
-    }
-  }
-
-  /**
-   * Record a page view event.
+   * Record a page view event when a user navigates to a section.
    *
    * @param {string} pageKey - Name of page ('attendance', 'timetable', 'marks', etc.)
-   * @param {string} [clientIdentifier] - Client IP or session ID
    */
-  recordPageView(pageKey, clientIdentifier = null) {
+  recordPageView(pageKey) {
     const key = String(pageKey || 'home').toLowerCase().trim();
     this.data.totalPageViews = (this.data.totalPageViews || 0) + 1;
 
@@ -145,11 +156,6 @@ class AnalyticsService {
       this.data.pageViews[key] = 1;
     }
 
-    if (clientIdentifier) {
-      this.recordViewer(clientIdentifier);
-    }
-
-    this.addActivity(`Viewed ${key.charAt(0).toUpperCase() + key.slice(1)} page`);
     this.scheduleSave();
   }
 
@@ -168,41 +174,36 @@ class AnalyticsService {
    * Record attendance marked event.
    *
    * @param {number} [count=1] - Number of students marked
-   * @param {string} [extraInfo] - Optional label
    */
-  recordAttendanceMarked(count = 1, extraInfo = '') {
+  recordAttendanceMarked(count = 1) {
     const inc = Math.max(1, parseInt(count, 10) || 1);
     this.data.totalAttendancesMarked = (this.data.totalAttendancesMarked || 0) + inc;
-
-    const label = count > 1
-      ? `Group attendance marked (${count} students)`
-      : `Attendance marked ${extraInfo ? `(${extraInfo})` : ''}`.trim();
-
-    this.addActivity(label);
     this.scheduleSave();
   }
 
   /**
-   * Add an entry to the recent activity feed (capped at 20 entries).
+   * Reset all analytics counters back to zero.
    *
-   * @param {string} description
+   * @returns {object} Formatted stats with all counters reset
    */
-  addActivity(description) {
-    if (!description) return;
-    const entry = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      description,
-      timestamp: Date.now()
+  resetStats() {
+    this.data.totalVisitors = 0;
+    this.data.todayVisitors = 0;
+    this.data.todayDate = this.getCurrentDateKey();
+    this.data.totalClicks = 0;
+    this.data.totalAttendancesMarked = 0;
+    this.data.totalPageViews = 0;
+    this.data.pageViews = {
+      home: 0,
+      attendance: 0,
+      timetable: 0,
+      marks: 0,
+      profile: 0,
+      mark: 0
     };
 
-    if (!Array.isArray(this.data.recentActivity)) {
-      this.data.recentActivity = [];
-    }
-
-    this.data.recentActivity.unshift(entry);
-    if (this.data.recentActivity.length > 25) {
-      this.data.recentActivity = this.data.recentActivity.slice(0, 25);
-    }
+    this.saveImmediately();
+    return this.getStats();
   }
 
   /**
@@ -211,13 +212,12 @@ class AnalyticsService {
    * @returns {object} Analytics metrics
    */
   getStats() {
-    const month = this.getCurrentMonthKey();
-    const currentMonthViewersList = this.data.monthlyViewers[month] || [];
-    const viewersThisMonth = currentMonthViewersList.length;
+    this.checkAndResetDayRollover();
 
     return {
-      currentMonth: this.getCurrentMonthName(),
-      viewersThisMonth,
+      totalVisitors: this.data.totalVisitors || 0,
+      todayVisitors: this.data.todayVisitors || 0,
+      todayDate: this.data.todayDate,
       totalClicks: this.data.totalClicks || 0,
       totalAttendancesMarked: this.data.totalAttendancesMarked || 0,
       totalPageViews: this.data.totalPageViews || 0,
@@ -228,8 +228,7 @@ class AnalyticsService {
         mark: this.data.pageViews.mark || 0,
         home: this.data.pageViews.home || 0,
         profile: this.data.pageViews.profile || 0
-      },
-      recentActivity: (this.data.recentActivity || []).slice(0, 15)
+      }
     };
   }
 }

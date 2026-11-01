@@ -28,7 +28,8 @@ export async function withSrmAutoRenew(req, operation) {
         await authService.login({
           username,
           password,
-          expressSession: req.session
+          expressSession: req.session,
+          isAutoRenew: true
         });
 
         // Retry the original operation with the newly allocated university session
@@ -42,3 +43,4 @@ export async function withSrmAutoRenew(req, operation) {
     throw err;
   }
 }
+
