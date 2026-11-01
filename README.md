@@ -1,4 +1,4 @@
-# PortalX
+# PortalX (An alternate portal for srm ap student portal)
 
 PortalX is a modern, responsive alternative student portal for SRM University-AP. It provides a fast, clean interface for students to access academic profiles, weekly schedules, attendance records, internal assessment breakdowns, and in-class attendance marking.
 
