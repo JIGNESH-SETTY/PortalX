@@ -2415,6 +2415,31 @@
       },
 
       /**
+       * Refresh platform telemetry stats (alias for getAnalyticsStats).
+       */
+      async refreshAnalyticsStats() {
+        return await this.getAnalyticsStats();
+      },
+
+      /**
+       * Reset all platform telemetry counters to zero (restricted to administrator).
+       */
+      async resetAnalyticsStats() {
+        return await this.fetchJson('/api/analytics/reset', { method: 'POST' });
+      },
+
+      /**
+       * Safe aliases ensuring any refresh or reset telemetry call succeeds seamlessly.
+       */
+      async refresh() {
+        return await this.getAnalyticsStats();
+      },
+
+      async reset() {
+        return await this.resetAnalyticsStats();
+      },
+
+      /**
        * Report interaction event (page view or click) to telemetry backend.
        */
       async trackEvent(type, data = {}) {
@@ -3101,6 +3126,52 @@
         `,
           after() {
             const container = $("#adminContent");
+
+            // Expose global handlers to guarantee no 'function not encountered' / 'not a function' error can occur
+            window.refreshAdminStats = async (btn) => {
+              const b = btn || $("#btnRefreshStats");
+              if (b) {
+                b.disabled = true;
+                b.textContent = "Updating…";
+              }
+              try {
+                await loadStats();
+              } catch (err) {
+                console.error("Failed to refresh stats:", err);
+              } finally {
+                const refreshedBtn = $("#btnRefreshStats");
+                if (refreshedBtn) {
+                  refreshedBtn.disabled = false;
+                  refreshedBtn.textContent = "↻ Refresh";
+                }
+              }
+            };
+
+            window.resetAdminStats = async (btn) => {
+              const confirmed = confirm("Are you sure you want to reset all analytics counters to 0? This will zero out Total Visitors, Visitors Today, Clicks, and Page Views.");
+              if (!confirmed) return;
+              const b = btn || $("#btnResetStats");
+              if (b) {
+                b.disabled = true;
+                b.textContent = "Resetting…";
+              }
+              try {
+                await api.resetAnalyticsStats();
+                await loadStats();
+              } catch (err) {
+                alert("Failed to reset counts: " + (err.message || "Unknown error"));
+              } finally {
+                const resetBtn = $("#btnResetStats");
+                if (resetBtn) {
+                  resetBtn.disabled = false;
+                  resetBtn.textContent = "🗑️ Reset Counts";
+                }
+              }
+            };
+
+            window.refreshStats = () => window.refreshAdminStats();
+            window.resetStats = () => window.resetAdminStats();
+
             const loadStats = async (isSilent = false) => {
               try {
                 const stats = await api.getAnalyticsStats();
@@ -3115,120 +3186,130 @@
                   { key: 'profile', label: 'Student Profile', count: stats.pageViews?.profile || 0, color: 'var(--ok)' }
                 ];
 
+                // If already mounted, update numbers smoothly without tearing down the DOM
+                if (container.querySelector("#adminStatsMounted")) {
+                  const elTotVis = $("#statTotalVisitors");
+                  if (elTotVis) elTotVis.textContent = Number(stats.totalVisitors || 0).toLocaleString();
+                  const elTodVis = $("#statTodayVisitors");
+                  if (elTodVis) elTodVis.textContent = Number(stats.todayVisitors || 0).toLocaleString();
+                  const elTotClk = $("#statTotalClicks");
+                  if (elTotClk) elTotClk.textContent = Number(stats.totalClicks || 0).toLocaleString();
+                  const elTotMrk = $("#statTotalMarked");
+                  if (elTotMrk) elTotMrk.textContent = Number(stats.totalAttendancesMarked || 0).toLocaleString();
+                  const elTotPV = $("#statTotalPageViews");
+                  if (elTotPV) elTotPV.textContent = `${Number(stats.totalPageViews || 0).toLocaleString()} Total Views`;
+
+                  for (const p of pageList) {
+                    const pct = stats.totalPageViews > 0 ? Math.round((p.count / stats.totalPageViews) * 100) : 0;
+                    const countEl = $(`#pvCount-${p.key}`);
+                    if (countEl) countEl.innerHTML = `<b>${Number(p.count || 0).toLocaleString()}</b> <small class="muted">(${pct}%)</small>`;
+                    const barEl = $(`#pvBar-${p.key}`);
+                    if (barEl) barEl.style.width = `${Math.max(pct, p.count > 0 ? 3 : 0)}%`;
+                  }
+                  return;
+                }
+
+                // Initial mount: render complete accessible structure
                 container.innerHTML = `
-                <!-- Action Controls Row -->
-                <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px">
-                  <button type="button" class="go" id="btnRefreshStats" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:var(--chip);color:var(--ink);border:1px solid var(--line);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
-                    ↻ Refresh
-                  </button>
-                  <button type="button" class="go" id="btnResetStats" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:color-mix(in srgb, var(--bad) 12%, var(--card));color:var(--bad);border:1px solid var(--bad);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
-                    🗑️ Reset Counts
-                  </button>
-                </div>
-
-                <!-- 2x2 Mobile Analytics Metric Cards -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                      <span style="font-size:18px">👥</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Total Visitors</span>
-                    </div>
-                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
-                      ${Number(stats.totalVisitors || 0).toLocaleString()}
-                    </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">All-time logins</div>
+                <div id="adminStatsMounted">
+                  <!-- Action Controls Row -->
+                  <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px">
+                    <button type="button" class="go" id="btnRefreshStats" onclick="window.refreshAdminStats && window.refreshAdminStats(this)" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:var(--chip);color:var(--ink);border:1px solid var(--line);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
+                      ↻ Refresh
+                    </button>
+                    <button type="button" class="go" id="btnResetStats" onclick="window.resetAdminStats && window.resetAdminStats(this)" style="height:36px;padding:0 14px;font-size:13px;border-radius:12px;background:color-mix(in srgb, var(--bad) 12%, var(--card));color:var(--bad);border:1px solid var(--bad);box-shadow:none;display:inline-flex;align-items:center;gap:6px">
+                      🗑️ Reset Counts
+                    </button>
                   </div>
 
-                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                      <span style="font-size:18px">📅</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Visitors Today</span>
+                  <!-- 2x2 Mobile Analytics Metric Cards -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                    <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                        <span style="font-size:18px">👥</span>
+                        <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Total Visitors</span>
+                      </div>
+                      <div id="statTotalVisitors" style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                        ${Number(stats.totalVisitors || 0).toLocaleString()}
+                      </div>
+                      <div class="muted" style="font-size:11px;margin-top:5px">All-time logins</div>
                     </div>
-                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--p)">
-                      ${Number(stats.todayVisitors || 0).toLocaleString()}
+
+                    <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                        <span style="font-size:18px">📅</span>
+                        <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Visitors Today</span>
+                      </div>
+                      <div id="statTodayVisitors" style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--p)">
+                        ${Number(stats.todayVisitors || 0).toLocaleString()}
+                      </div>
+                      <div class="muted" style="font-size:11px;margin-top:5px">Resets daily at midnight</div>
                     </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">Resets daily at midnight</div>
+
+                    <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                        <span style="font-size:18px">🖱️</span>
+                        <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Clicks</span>
+                      </div>
+                      <div id="statTotalClicks" style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
+                        ${Number(stats.totalClicks || 0).toLocaleString()}
+                      </div>
+                      <div class="muted" style="font-size:11px;margin-top:5px">User interactions</div>
+                    </div>
+
+                    <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                        <span style="font-size:18px">📝</span>
+                        <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Marked</span>
+                      </div>
+                      <div id="statTotalMarked" style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ok)">
+                        ${Number(stats.totalAttendancesMarked || 0).toLocaleString()}
+                      </div>
+                      <div class="muted" style="font-size:11px;margin-top:5px">Classes submitted</div>
+                    </div>
                   </div>
 
-                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                      <span style="font-size:18px">🖱️</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Clicks</span>
+                  <!-- Page Views Breakdown Card -->
+                  <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                      <h2 style="margin:0">Pages Viewed</h2>
+                      <span id="statTotalPageViews" class="pill" style="font-size:12px;font-weight:700">${Number(stats.totalPageViews || 0).toLocaleString()} Total Views</span>
                     </div>
-                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ink)">
-                      ${Number(stats.totalClicks || 0).toLocaleString()}
-                    </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">User interactions</div>
-                  </div>
 
-                  <div class="card" style="margin:0;padding:16px;background:var(--card);border:1px solid var(--line)">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                      <span style="font-size:18px">📝</span>
-                      <span class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Marked</span>
-                    </div>
-                    <div style="font-size:32px;font-weight:800;font-family:var(--fd);line-height:1;color:var(--ok)">
-                      ${Number(stats.totalAttendancesMarked || 0).toLocaleString()}
-                    </div>
-                    <div class="muted" style="font-size:11px;margin-top:5px">Classes submitted</div>
-                  </div>
-                </div>
-
-                <!-- Page Views Breakdown Card -->
-                <div class="card">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-                    <h2 style="margin:0">Pages Viewed</h2>
-                    <span class="pill" style="font-size:12px;font-weight:700">${Number(stats.totalPageViews || 0).toLocaleString()} Total Views</span>
-                  </div>
-
-                  <div style="display:flex;flex-direction:column;gap:12px">
-                    ${pageList.map(p => {
-                      const pct = stats.totalPageViews > 0 ? Math.round((p.count / stats.totalPageViews) * 100) : 0;
-                      return `
-                        <div>
-                          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-                            <span style="font-weight:600">${esc(p.label)}</span>
-                            <span><b>${Number(p.count || 0).toLocaleString()}</b> <small class="muted">(${pct}%)</small></span>
+                    <div style="display:flex;flex-direction:column;gap:12px">
+                      ${pageList.map(p => {
+                        const pct = stats.totalPageViews > 0 ? Math.round((p.count / stats.totalPageViews) * 100) : 0;
+                        return `
+                          <div>
+                            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+                              <span style="font-weight:600">${esc(p.label)}</span>
+                              <span id="pvCount-${p.key}"><b>${Number(p.count || 0).toLocaleString()}</b> <small class="muted">(${pct}%)</small></span>
+                            </div>
+                            <div style="height:8px;background:var(--chip);border-radius:4px;overflow:hidden">
+                              <i id="pvBar-${p.key}" style="width:${Math.max(pct, p.count > 0 ? 3 : 0)}%;background:${p.color};height:100%;display:block;border-radius:4px"></i>
+                            </div>
                           </div>
-                          <div style="height:8px;background:var(--chip);border-radius:4px;overflow:hidden">
-                            <i style="width:${Math.max(pct, p.count > 0 ? 3 : 0)}%;background:${p.color};height:100%;display:block;border-radius:4px"></i>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')}
+                        `;
+                      }).join('')}
+                    </div>
                   </div>
                 </div>
               `;
 
                 const btnRefresh = $("#btnRefreshStats");
                 if (btnRefresh) {
-                  btnRefresh.onclick = () => {
-                    btnRefresh.disabled = true;
-                    btnRefresh.textContent = "Updating…";
-                    loadStats();
-                  };
+                  btnRefresh.onclick = () => window.refreshAdminStats(btnRefresh);
                 }
 
                 const btnReset = $("#btnResetStats");
                 if (btnReset) {
-                  btnReset.onclick = async () => {
-                    const confirmed = confirm("Are you sure you want to reset all analytics counters to 0? This will zero out Total Visitors, Visitors Today, Clicks, and Page Views.");
-                    if (!confirmed) return;
-                    btnReset.disabled = true;
-                    btnReset.textContent = "Resetting…";
-                    try {
-                      await api.resetAnalyticsStats();
-                      await loadStats();
-                    } catch (err) {
-                      alert("Failed to reset counts: " + (err.message || "Unknown error"));
-                      btnReset.disabled = false;
-                      btnReset.textContent = "🗑️ Reset Counts";
-                    }
-                  };
+                  btnReset.onclick = () => window.resetAdminStats(btnReset);
                 }
               } catch (err) {
                 if (!isSilent) {
-                  container.innerHTML = `<div class="card err" style="margin:14px 0">Unable to load analytics stats.<br><br><button class="go" id="retryAdminStats">Retry</button></div>`;
-                  $("#retryAdminStats").onclick = () => loadStats();
+                  container.innerHTML = `<div class="card err" style="margin:14px 0">Unable to load analytics stats.<br><br><button class="go" id="retryAdminStats" onclick="window.refreshAdminStats && window.refreshAdminStats()">Retry</button></div>`;
+                  const retryBtn = $("#retryAdminStats");
+                  if (retryBtn) retryBtn.onclick = () => loadStats();
                 }
               }
             };

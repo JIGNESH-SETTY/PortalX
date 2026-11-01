@@ -6,10 +6,10 @@
   "totalAttendancesMarked": 0,
   "totalPageViews": 0,
   "pageViews": {
-    "home": 0,
     "attendance": 0,
     "timetable": 0,
     "marks": 0,
+    "home": 0,
     "profile": 0,
     "mark": 0
   }
