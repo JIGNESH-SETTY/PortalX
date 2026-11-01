@@ -96,6 +96,23 @@ class SrmSessionService {
   }
 
   /**
+   * Reset session cookies to ensure a completely fresh SRM session.
+   * Useful when retrying login or clearing a stale/invalidated JSESSIONID.
+   *
+   * @param {string} key - Session identifier
+   * @returns {object|null} Updated session object, or null if key does not exist
+   */
+  resetSessionCookies(key) {
+    if (key && this.sessions.has(key)) {
+      const session = this.sessions.get(key);
+      session.jar = new CookieJar();
+      session.lastAccessedAt = Date.now();
+      return session;
+    }
+    return null;
+  }
+
+  /**
    * Attach an existing SRM cookie string (e.g. JSESSIONID) to an isolated session jar.
    * Useful for testing with an active authenticated SRM browser session.
    *

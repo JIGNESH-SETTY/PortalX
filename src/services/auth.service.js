@@ -4,6 +4,51 @@ import { captchaService } from './captcha.service.js';
 import { config } from '../config/env.js';
 import { ValidationError, AuthenticationError } from '../utils/errors.js';
 
+/** Maximum automated login cycles to retry on captcha or transient session rejections */
+const MAX_LOGIN_ATTEMPTS = 3;
+
+/** Maximum attempts to fetch and OCR a valid 5-character captcha per login cycle */
+const MAX_CAPTCHA_FETCH_ATTEMPTS = 3;
+
+/** Standard expected length of SRM University-AP alphanumeric captchas */
+const CAPTCHA_LENGTH = 5;
+
+/**
+ * Fetch a fresh captcha image and solve it via OCR.
+ * Retries fetching a new image if OCR yields an incomplete string (fewer than 5 chars).
+ *
+ * @param {string} sessionKey - Active isolated SRM session identifier
+ * @returns {Promise<string>} Predicted 5-character uppercase captcha string
+ */
+async function fetchAndSolveCaptcha(sessionKey) {
+  let fallbackCandidate = '';
+
+  for (let attempt = 1; attempt <= MAX_CAPTCHA_FETCH_ATTEMPTS; attempt++) {
+    try {
+      const captchaImageBuffer = await srmClientService.fetchCaptchaImage(sessionKey);
+      const solved = await captchaService.solve(captchaImageBuffer);
+
+      // SRM captchas are 5 alphanumeric characters (1 letter + 4 digits e.g. "M9005", "Z7392")
+      if (solved.length === CAPTCHA_LENGTH && /^[A-Z0-9]{5}$/i.test(solved)) {
+        return solved;
+      }
+
+      // Keep 4-character result as fallback in case all attempts produce 4 chars
+      if (solved.length >= 4 && solved.length <= 5 && !fallbackCandidate) {
+        fallbackCandidate = solved;
+      }
+
+      console.warn(
+        `[CaptchaService] Fetch ${attempt}/${MAX_CAPTCHA_FETCH_ATTEMPTS}: OCR predicted "${solved}" (${solved.length} chars) — fetching fresh image`
+      );
+    } catch (err) {
+      console.warn(`[CaptchaService] Fetch ${attempt}/${MAX_CAPTCHA_FETCH_ATTEMPTS} error:`, err.message);
+    }
+  }
+
+  return fallbackCandidate;
+}
+
 class AuthService {
   /**
    * Authenticate a student against the SRM student portal.
@@ -59,64 +104,66 @@ class AuthService {
       };
     }
 
-    // ── Auto-solve CAPTCHA ────────────────────────────────────────────────
-    // If the caller did not manually supply a captcha code (which is the normal
-    // case for the PortalX frontend), we automatically:
-    //   1. Fetch the CAPTCHA image from SRM (seeding the session cookie).
-    //   2. Run OCR via captchaService to predict the code.
-    //   3. Validate the result is 4–5 alphanumeric chars (SRM's format).
-    //   4. Retry up to MAX_CAPTCHA_ATTEMPTS times if the OCR output is unusable.
-    //   5. Pass the best predicted code into the login POST.
-    //
-    // Each retry fetches a fresh captcha image (and a new JSESSIONID),
-    // so the captcha and the session cookie used in postLogin always match.
-    const MAX_CAPTCHA_ATTEMPTS = 5;
-    let resolvedCaptcha = captcha || '';
+    // ── Automated Authentication & Captcha Solving Loop ──────────────────
+    // If a manual captcha is provided (e.g. testing / bypass), attempt login once.
+    // Otherwise, automate the login attempt with auto-retries on captcha rejections
+    // or transient session glitches so the student never experiences false failures.
+    const maxAttempts = captcha ? 1 : MAX_LOGIN_ATTEMPTS;
+    let lastFailureMessage = '';
 
-    if (!resolvedCaptcha) {
-      for (let attempt = 1; attempt <= MAX_CAPTCHA_ATTEMPTS; attempt++) {
-        try {
-          const captchaImageBuffer = await srmClientService.fetchCaptchaImage(session.key);
-          const solved = await captchaService.solve(captchaImageBuffer);
+    for (let loginAttempt = 1; loginAttempt <= maxAttempts; loginAttempt++) {
+      // 1. Reset cookies before each attempt to ensure a pristine, untainted Tomcat session
+      srmSessionService.resetSessionCookies(session.key);
 
-          // SRM captchas are always 4–5 uppercase alphanumeric characters.
-          // If OCR produced something outside this range, fetch a fresh one.
-          if (solved.length >= 4 && solved.length <= 5) {
-            resolvedCaptcha = solved;
-            break;
-          }
+      // 2. Resolve captcha: use caller-supplied code or auto-fetch & solve
+      const resolvedCaptcha = captcha || (await fetchAndSolveCaptcha(session.key));
 
-          console.warn(`[CaptchaService] Attempt ${attempt}/${MAX_CAPTCHA_ATTEMPTS}: OCR returned "${solved}" (${solved.length} chars) — retrying`);
-        } catch (captchaErr) {
-          console.warn(`[CaptchaService] Attempt ${attempt}/${MAX_CAPTCHA_ATTEMPTS}: ${captchaErr.message}`);
-        }
+      // 3. Post credentials to SRM StudentLoginToPortal
+      const result = await srmClientService.postLogin(session.key, {
+        username: regNo,
+        password,
+        captcha: resolvedCaptcha
+      });
+
+      // 4. Handle successful authentication
+      if (result.success) {
+        expressSession.studentId = regNo;
+        expressSession.isAuthenticated = true;
+        return {
+          ok: true,
+          studentId: regNo,
+          message: 'Authentication successful.'
+        };
       }
 
-      if (!resolvedCaptcha) {
-        console.warn('[CaptchaService] All attempts exhausted — proceeding without captcha');
+      // 5. Evaluate failure cause
+      lastFailureMessage = result.message || '';
+      const isCaptchaFailure = /captcha/i.test(lastFailureMessage);
+      const isCredentialFailure = /password|user id|credential/i.test(lastFailureMessage);
+
+      console.warn(
+        `[AuthService] Attempt ${loginAttempt}/${maxAttempts} for ${regNo} failed: "${lastFailureMessage}"`
+      );
+
+      // If SRM rejected due to captcha, retry immediately with a fresh captcha and session
+      if (isCaptchaFailure) {
+        continue;
       }
+
+      // If SRM reported credential failure:
+      // Transient SRM portal desynchronization can occasionally report false credential errors.
+      // We retry once with a clean session to verify whether it was transient or authentic.
+      if (isCredentialFailure && loginAttempt < 2) {
+        continue;
+      }
+
+      // Definitive failure or exhausted retry conditions
+      break;
     }
 
-    // Attempt live authentication against SRM
-    const result = await srmClientService.postLogin(session.key, {
-      username: regNo,
-      password,
-      captcha: resolvedCaptcha
-    });
-
-    if (result.success) {
-      expressSession.studentId = regNo;
-      expressSession.isAuthenticated = true;
-      return {
-        ok: true,
-        studentId: regNo,
-        message: 'Authentication successful.'
-      };
-    }
-
-    // If SRM rejected credentials or requested CAPTCHA
+    // If SRM rejected credentials or requested CAPTCHA after retries
     throw new AuthenticationError(
-      result.message || 'Invalid Register Number, password, or verification code.'
+      lastFailureMessage || 'Invalid Register Number, password, or verification code.'
     );
   }
 

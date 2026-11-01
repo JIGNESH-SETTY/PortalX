@@ -95,11 +95,12 @@ async function getWorker() {
 /**
  * Pre-process a raw SRM captcha image buffer for optimal Tesseract OCR accuracy.
  *
- * Confirmed effective on live SRM captchas (220×30px PNG, dark text on white/grey bg):
- *  1. Grayscale  — removes colour noise; SRM captcha text is monochrome.
- *  2. Normalise  — stretches histogram to [0,255]; handles faded/low-contrast images.
- *  3. Threshold  — binary at 128: text becomes pure black, background pure white.
- *  4. Scale up   — 300px wide (no max height); Tesseract handles small images poorly.
+ * Pipeline for SRM captchas (220×30px PNG, dark alphanumeric text on white/grey pattern):
+ *  1. Grayscale  — drops colour channels and isolates luminance.
+ *  2. Normalise  — expands the dynamic histogram to [0,255] for maximum contrast.
+ *  3. Scale up   — resizes width to 300px using Lanczos3 interpolation so Tesseract's
+ *                  neural net classifier can clearly distinguish character glyphs without
+ *                  clipping or hard binary threshold artifacts.
  *
  * @param {Buffer} rawImageBuffer
  * @returns {Promise<Buffer>} Pre-processed PNG buffer ready for OCR
@@ -108,7 +109,6 @@ async function preprocessCaptcha(rawImageBuffer) {
   return sharp(rawImageBuffer)
     .grayscale()
     .normalise()
-    .threshold(128)
     .resize(300, null, {
       kernel: sharp.kernel.lanczos3,
       withoutEnlargement: false       // always upscale the 220px original to 300px
