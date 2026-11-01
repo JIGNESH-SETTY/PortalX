@@ -1952,7 +1952,7 @@
         </div>
         <form class="card lg-card" id="loginForm" novalidate>
           <div class="lg-f" id="fId"><label for="regNo">Application Number / Register Number</label>
-            <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" maxlength="64"
+            <div class="lg-in"><input id="regNo" name="username" placeholder="e.g. AP25110010807" autocapitalize="none"
                 autocomplete="username" autocorrect="off" spellcheck="false"
                 enterkeyhint="next" required></div>
           </div>
@@ -3074,10 +3074,10 @@
 
     const fail = (t, ...f) => { msg.textContent = t; msg.scrollIntoView({ block: "nearest" }); f.forEach(x => x.classList.add("bad")); const c = $("#loginForm"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); if ("vibrate" in navigator) navigator.vibrate(60) };
     
-    // Auto-capitalize register numbers while preserving lowercase for admin email input
+    // Auto-capitalize register numbers while preserving natural casing for admin email input
     $("#regNo").addEventListener("input", e => {
       e.target.value = e.target.value.replace(/\s/g, "");
-      if (!e.target.value.includes("@")) {
+      if (/^ap/i.test(e.target.value) && !e.target.value.includes("@")) {
         e.target.value = e.target.value.toUpperCase();
       }
     });
