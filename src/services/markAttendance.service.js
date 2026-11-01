@@ -1,7 +1,64 @@
 import { srmClientService } from './srmClient.service.js';
+import { srmSessionService, MAX_FRIENDS } from './srmSession.service.js';
 import { parseMarkAttendanceHtml } from '../parsers/markAttendance.parser.js';
 import { ValidationError } from '../utils/errors.js';
 import { config } from '../config/env.js';
+
+/**
+ * Pacing delay between sequential friend attendance submissions in milliseconds.
+ * Simulates human user timing to bypass university firewall rate limits.
+ */
+export const SUBMISSION_DELAY_MS = 20;
+
+/**
+ * Rate-limit bypass helper: Staggers sequential attendance submissions across multiple sessions.
+ * Inserts a 20ms pause between submissions to simulate realistic human pacing and avoid
+ * triggering SRM security firewalls or request burst throttles.
+ *
+ * @param {Array<{ key: string, studentId: string, isPrimary: boolean }>} targetSessions - List of sessions to submit
+ * @param {string} cleanCode - Validated 7-character attendance code
+ * @param {object} tokens - Optional dynamic location tokens { dynamiclatdata, dynamiclonxdata }
+ * @param {Function} submitSingleFn - Function used to submit for an individual session
+ * @returns {Promise<Array<{ studentId: string, isPrimary: boolean, ok: boolean, message: string, resultstatus?: string }>>}
+ */
+async function submitAttendanceWithDelay(targetSessions, cleanCode, tokens, submitSingleFn) {
+  const submissionResults = [];
+
+  for (let i = 0; i < targetSessions.length; i++) {
+    const session = targetSessions[i];
+
+    // Introduce delay between requests (skipping delay before the very first request)
+    if (i > 0) {
+      // Simulate human behavior and prevent parallel burst firewall blocks on SRM gateway
+      await new Promise(resolve => setTimeout(resolve, SUBMISSION_DELAY_MS));
+    }
+
+    try {
+      const result = await submitSingleFn(session.key, session.studentId, {
+        code: cleanCode,
+        dynamiclatdata: tokens?.dynamiclatdata,
+        dynamiclonxdata: tokens?.dynamiclonxdata
+      });
+
+      submissionResults.push({
+        studentId: session.studentId,
+        isPrimary: session.isPrimary,
+        ok: result.ok,
+        resultstatus: result.resultstatus,
+        message: result.message
+      });
+    } catch (error) {
+      submissionResults.push({
+        studentId: session.studentId,
+        isPrimary: session.isPrimary,
+        ok: false,
+        message: error.message || 'Submission failed for this account.'
+      });
+    }
+  }
+
+  return submissionResults;
+}
 
 class MarkAttendanceService {
   /**
@@ -91,6 +148,70 @@ class MarkAttendanceService {
       resultstatus: srmResponse.resultstatus,
       result: srmResponse.result || 'No server message provided.',
       message: srmResponse.result || (isRecorded ? 'Attendance marked successfully.' : 'Attendance code not accepted.')
+    };
+  }
+
+  /**
+   * Submit attendance code in batch for the primary user and all active friend sessions.
+   *
+   * @param {string} primarySessionKey - The primary student's SRM session key
+   * @param {string} primaryStudentId - The primary student's Register Number
+   * @param {object} params
+   * @param {string} params.code - 7-character attendance code
+   * @param {string} [params.dynamiclatdata]
+   * @param {string} [params.dynamiclonxdata]
+   * @returns {Promise<{ ok: boolean, results: Array<object>, message: string }>}
+   */
+  async submitGroupCode(primarySessionKey, primaryStudentId, { code, dynamiclatdata, dynamiclonxdata }) {
+    if (!code || typeof code !== 'string') {
+      throw new ValidationError('Attendance code is required.');
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    if (!/^[A-Z]\d{6}$/.test(cleanCode)) {
+      throw new ValidationError('Attendance code must be 1 letter followed by 6 digits (e.g. A123456).');
+    }
+
+    // Retrieve active friend sessions registered under this primary session
+    const friendSessions = srmSessionService.getFriendSessions(primarySessionKey);
+
+    // Build the consolidated list of all accounts (primary user first, followed by up to 4 friends)
+    const targetSessions = [
+      { key: primarySessionKey, studentId: primaryStudentId, isPrimary: true },
+      ...friendSessions.map(friend => ({ key: friend.key, studentId: friend.studentId, isPrimary: false }))
+    ];
+
+    // Handle offline dev mock fallback
+    if (config.devMockFallback) {
+      const mockResults = targetSessions.map(session => ({
+        studentId: session.studentId,
+        isPrimary: session.isPrimary,
+        ok: true,
+        message: 'Preview mode: mock attendance code accepted.'
+      }));
+
+      return {
+        ok: true,
+        results: mockResults,
+        message: `Group attendance marked for ${mockResults.length} account(s).`
+      };
+    }
+
+    // Execute staggered submissions with delay to avoid SRM firewall rate limits
+    const results = await submitAttendanceWithDelay(
+      targetSessions,
+      cleanCode,
+      { dynamiclatdata, dynamiclonxdata },
+      (sessionKey, studentId, payload) => this.submitCode(sessionKey, studentId, payload)
+    );
+
+    const successCount = results.filter(r => r.ok).length;
+    const allOk = successCount === results.length;
+
+    return {
+      ok: allOk,
+      results,
+      message: `Group attendance processed: ${successCount} of ${results.length} succeeded.`
     };
   }
 }

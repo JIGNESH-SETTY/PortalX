@@ -2336,37 +2336,325 @@
       },
       async mark() {
         return {
-          html: `<h1>Mark attendance</h1><p class="sub">Enter the code your faculty shares in class.</p>
-  <div class="card"><span class="pill">${FULL[todayKey()]}</span><div class="field"><label for="code" class="muted" style="display:block;margin-top:14px;font-size:13px">One letter followed by six numbers</label><input id="code" maxlength="7" autocomplete="off" placeholder="A123456"><button class="go" id="sub">Submit code</button></div><div class="msg" id="msg" role="status"></div></div>
-  <div class="card"><h2>Today’s attendance</h2><div id="todayRecords"><p class="muted">Loading today’s records…</p></div></div>`, after() {
-            // Fetch today's records if available from backend
-            api.getMarkAttendanceData().then(d => {
-              const recs = $("#todayRecords");
-              if (!recs) return;
-              if (d && d.todayAttendance && d.todayAttendance.length > 0) {
-                recs.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${d.todayAttendance.map(item => `
-         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)">
-           <div><b>${esc(item.subject)}</b><div style="font-size:12px;color:var(--ink2)">Hour: ${esc(item.hour)} · ${esc(item.date)}</div></div>
-           <span class="pill ${item.status?.toLowerCase() === 'present' ? 'now' : 'done'}">${esc(item.status)}</span>
-         </div>
-       `).join('')}</div>`;
+          html: `<h1>Mark attendance</h1><p class="sub">Enter the code once to mark for yourself and your friends.</p>
+  
+  <!-- Group Attendance Section -->
+  <div class="card" id="groupSection">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <h2 style="margin:0 0 4px">Group Attendance</h2>
+        <p class="muted" style="font-size:13px;margin:0">Add up to 4 friends to mark attendance together</p>
+      </div>
+      <span class="pill" id="friendCountBadge" style="font-weight:700">0 / 4 Friends</span>
+    </div>
+
+    <!-- Active Friends List Container -->
+    <div id="friendListContainer">
+      <div id="friendList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <p class="muted" style="margin:6px 0;font-size:13px">Loading group members…</p>
+      </div>
+    </div>
+
+    <!-- Add Friend Action Button -->
+    <button type="button" class="go" id="btnToggleFriendForm" style="height:44px;padding:0 20px;font-size:14px;background:var(--chip);color:var(--ink);box-shadow:none;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;gap:6px">
+      <svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Add Friend
+    </button>
+
+    <!-- Expandable Add Friend Form -->
+    <div id="friendFormCard" style="display:none;margin-top:14px;padding:16px;border-radius:20px;background:var(--chip);border:1px solid var(--line)">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;font-family:var(--fd)">Add Friend's Credentials</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label for="friendReg" style="display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px">Friend's Register Number</label>
+          <input id="friendReg" placeholder="e.g. AP25110010808" maxlength="14" style="width:100%;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-weight:700;text-transform:uppercase" autocomplete="off">
+        </div>
+        <div>
+          <label for="friendPw" style="display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px">Friend's Password</label>
+          <input id="friendPw" type="password" placeholder="Date of birth (DDMMYYYY) or password" style="width:100%;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--card);padding:0 14px" autocomplete="off">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button type="button" class="go" id="btnAddFriendSubmit" style="height:44px;flex:1;font-size:14px;border-radius:14px">Verify & Add Friend</button>
+          <button type="button" class="round" id="btnCancelFriendForm" style="width:44px;height:44px;border-radius:14px" title="Cancel">✕</button>
+        </div>
+        <div id="friendFormMsg" class="msg" style="margin-top:4px;font-size:12.5px" role="alert"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Code Submission Section -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">Class Code</h2>
+      <span class="pill">${FULL[todayKey()]}</span>
+    </div>
+    <div class="field">
+      <label for="code" class="muted" style="display:block;margin-top:6px;font-size:13px">Enter the 7-character attendance code</label>
+      <input id="code" maxlength="7" autocomplete="off" placeholder="A123456" spellcheck="false">
+      <button class="go" id="sub" style="width:100%">Submit Group Attendance</button>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+    <div id="groupResults" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Today's Attendance History Section -->
+  <div class="card">
+    <h2>Today’s Attendance Record</h2>
+    <div id="todayRecords"><p class="muted">Loading today’s records…</p></div>
+  </div>`,
+
+          after() {
+            /** Maximum allowed friend accounts for group attendance */
+            const MAX_FRIENDS = 4;
+
+            /** In-memory array of active friends registered for this session */
+            let activeFriends = [];
+
+            // DOM Element References
+            const friendList = $("#friendList");
+            const friendBadge = $("#friendCountBadge");
+            const btnToggleForm = $("#btnToggleFriendForm");
+            const formCard = $("#friendFormCard");
+            const inputReg = $("#friendReg");
+            const inputPw = $("#friendPw");
+            const btnSubmitFriend = $("#btnAddFriendSubmit");
+            const btnCancelForm = $("#btnCancelFriendForm");
+            const formMsg = $("#friendFormMsg");
+            const codeInput = $("#code");
+            const btnSubmitCode = $("#sub");
+            const mainMsg = $("#msg");
+            const groupResults = $("#groupResults");
+
+            /**
+             * Render the active friends list and update the limit counter badge.
+             */
+            const renderFriends = () => {
+              if (!friendList || !friendBadge) return;
+
+              // Update limit badge
+              friendBadge.textContent = `${activeFriends.length} / ${MAX_FRIENDS} Friends`;
+              if (activeFriends.length >= MAX_FRIENDS) {
+                friendBadge.style.setProperty("--c", "var(--amber)");
               } else {
-                recs.innerHTML = '<p class="muted">Nothing recorded yet for today.</p>';
+                friendBadge.style.removeProperty("--c");
+              }
+
+              // Update Toggle Button state based on MAX_FRIENDS
+              if (btnToggleForm) {
+                if (activeFriends.length >= MAX_FRIENDS) {
+                  btnToggleForm.disabled = true;
+                  btnToggleForm.style.opacity = "0.5";
+                  btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M5 13l4 4L19 7"/></svg> Maximum Friends Reached (${MAX_FRIENDS})`;
+                  if (formCard) formCard.style.display = "none";
+                } else {
+                  btnToggleForm.disabled = false;
+                  btnToggleForm.style.opacity = "1";
+                  btnToggleForm.innerHTML = `<svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 5v14M5 12h14"/></svg> Add Friend (${activeFriends.length}/${MAX_FRIENDS})`;
+                }
+              }
+
+              // Render list items
+              if (activeFriends.length === 0) {
+                friendList.innerHTML = '<p class="muted" style="margin:6px 0;font-size:13px">No friends added yet. Tap "+ Add Friend" to include group members.</p>';
+                return;
+              }
+
+              friendList.innerHTML = activeFriends.map(friend => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:16px;background:var(--chip);border:1px solid var(--line);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05)">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ok)"></span>
+                    <div>
+                      <b style="font-size:14px;letter-spacing:0.02em;font-family:var(--fd)">${esc(friend.studentId)}</b>
+                      <div style="font-size:11.5px;color:var(--ok);font-weight:700">✅ Active in group</div>
+                    </div>
+                  </div>
+                  <button type="button" class="round btn-rm-friend" data-id="${esc(friend.studentId)}" style="width:34px;height:34px;color:var(--bad);box-shadow:none;border:1px solid var(--line)" title="Remove friend">×</button>
+                </div>
+              `).join('');
+
+              // Attach click listeners to Remove buttons
+              friendList.querySelectorAll(".btn-rm-friend").forEach(button => {
+                button.onclick = async (e) => {
+                  const friendId = e.currentTarget.dataset.id;
+                  button.disabled = true;
+                  button.textContent = "…";
+                  await api.removeFriend(friendId);
+                  activeFriends = activeFriends.filter(f => f.studentId.toUpperCase() !== friendId.toUpperCase());
+                  renderFriends();
+                };
+              });
+            };
+
+            // Load existing friends from server session
+            api.getFriends().then(existingFriends => {
+              if (Array.isArray(existingFriends)) {
+                activeFriends = existingFriends;
+                renderFriends();
               }
             }).catch(() => {
-              const recs = $("#todayRecords");
-              if (recs) recs.innerHTML = '<p class="muted">Nothing recorded yet. Entries will show here once recorded.</p>';
+              renderFriends();
             });
 
-            $("#sub").onclick = async () => {
-              const v = $("#code").value.trim(), msg = $("#msg");
-              if (!/^[A-Za-z]\d{6}$/.test(v)) { msg.className = "msg bad"; msg.textContent = "Use one letter followed by six numbers, like A123456."; return }
-              $("#sub").disabled = true; $("#sub").textContent = "Submitting…";
-              const r = await api.submitAttendanceCode(v);
-              $("#sub").disabled = false; $("#sub").textContent = "Submit code";
-              msg.className = "msg " + (r.ok ? "ok" : "bad");
-              msg.textContent = r.mock ? "Preview mode: mock attendance code accepted." : r.message || (r.ok ? "Attendance marked." : "Code not accepted.");
+            // Toggle Add Friend Form
+            if (btnToggleForm && formCard) {
+              btnToggleForm.onclick = () => {
+                const isOpen = formCard.style.display !== "none";
+                formCard.style.display = isOpen ? "none" : "block";
+                if (!isOpen && inputReg) inputReg.focus();
+                if (formMsg) formMsg.textContent = "";
+              };
+            }
+
+            // Cancel Add Friend Form
+            if (btnCancelForm && formCard) {
+              btnCancelForm.onclick = () => {
+                formCard.style.display = "none";
+                if (formMsg) formMsg.textContent = "";
+              };
+            }
+
+            // Capitalize Friend Reg ID as typed
+            if (inputReg) {
+              inputReg.addEventListener("input", e => {
+                e.target.value = e.target.value.replace(/\s/g, "").toUpperCase();
+              });
+            }
+
+            // Handle Friend Submission
+            if (btnSubmitFriend) {
+              btnSubmitFriend.onclick = async () => {
+                const friendId = (inputReg.value || "").trim().toUpperCase();
+                const friendPassword = (inputPw.value || "").trim();
+
+                if (!friendId) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = "Enter your friend's Register Number.";
+                  return;
+                }
+                if (!/^AP\d{11,12}$/i.test(friendId)) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = "Friend's Register Number must start with AP followed by 11 or 12 digits.";
+                  return;
+                }
+                if (!friendPassword) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = "Enter your friend's password.";
+                  return;
+                }
+                if (activeFriends.some(f => f.studentId.toUpperCase() === friendId)) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = "This friend is already in your attendance group.";
+                  return;
+                }
+                if (activeFriends.length >= MAX_FRIENDS) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = `Maximum limit of ${MAX_FRIENDS} friends reached.`;
+                  return;
+                }
+
+                btnSubmitFriend.disabled = true;
+                btnSubmitFriend.textContent = "Authenticating friend…";
+                formMsg.className = "msg";
+                formMsg.textContent = "Connecting to SRM and verifying credentials…";
+
+                try {
+                  const response = await api.addFriend(friendId, friendPassword);
+                  activeFriends.push({ studentId: response.regId || friendId, addedAt: Date.now() });
+                  renderFriends();
+                  inputReg.value = "";
+                  inputPw.value = "";
+                  formMsg.className = "msg ok";
+                  formMsg.textContent = `${response.regId || friendId} verified and added!`;
+                  setTimeout(() => {
+                    if (formCard) formCard.style.display = "none";
+                    if (formMsg) formMsg.textContent = "";
+                  }, 1200);
+                } catch (err) {
+                  formMsg.className = "msg bad";
+                  formMsg.textContent = err.message || "Failed to authenticate friend. Check their credentials.";
+                } finally {
+                  btnSubmitFriend.disabled = false;
+                  btnSubmitFriend.textContent = "Verify & Add Friend";
+                }
+              };
+            }
+
+            // Load Today's Attendance History
+            const loadTodayRecords = () => {
+              api.getMarkAttendanceData().then(d => {
+                const recs = $("#todayRecords");
+                if (!recs) return;
+                if (d && d.todayAttendance && d.todayAttendance.length > 0) {
+                  recs.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${d.todayAttendance.map(item => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+                      <div><b>${esc(item.subject)}</b><div style="font-size:12px;color:var(--ink2)">Hour: ${esc(item.hour)} · ${esc(item.date)}</div></div>
+                      <span class="pill ${item.status?.toLowerCase() === 'present' ? 'now' : 'done'}">${esc(item.status)}</span>
+                    </div>
+                  `).join('')}</div>`;
+                } else {
+                  recs.innerHTML = '<p class="muted">Nothing recorded yet for today.</p>';
+                }
+              }).catch(() => {
+                const recs = $("#todayRecords");
+                if (recs) recs.innerHTML = '<p class="muted">Nothing recorded yet. Entries will show here once recorded.</p>';
+              });
             };
+            loadTodayRecords();
+
+            // Handle Group Attendance Code Submission
+            if (btnSubmitCode) {
+              btnSubmitCode.onclick = async () => {
+                const code = (codeInput.value || "").trim().toUpperCase();
+
+                if (!/^[A-Za-z]\d{6}$/.test(code)) {
+                  mainMsg.className = "msg bad";
+                  mainMsg.textContent = "Use 1 letter followed by 6 numbers, e.g. A123456.";
+                  if (groupResults) groupResults.innerHTML = "";
+                  return;
+                }
+
+                const totalStudents = activeFriends.length + 1;
+                btnSubmitCode.disabled = true;
+                btnSubmitCode.textContent = `Submitting for ${totalStudents} student${totalStudents > 1 ? 's' : ''}…`;
+                mainMsg.className = "msg";
+                mainMsg.textContent = `Processing group submission (${totalStudents} accounts)…`;
+                if (groupResults) groupResults.innerHTML = '<div class="skel" style="padding:16px">Marking attendance sequentially…</div>';
+
+                const response = await api.submitGroupAttendance(code);
+
+                btnSubmitCode.disabled = false;
+                btnSubmitCode.textContent = "Submit Group Attendance";
+
+                mainMsg.className = "msg " + (response.ok ? "ok" : "bad");
+                mainMsg.textContent = response.message || (response.ok ? "Attendance marked for all members." : "Completed with some notices.");
+
+                // Render per-student breakdown cards
+                if (groupResults && Array.isArray(response.data) && response.data.length > 0) {
+                  groupResults.innerHTML = `
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+                      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:2px">Submission Results:</div>
+                      ${response.data.map(item => {
+                        const isSuccess = item.ok;
+                        const statusColor = isSuccess ? "var(--ok)" : "var(--bad)";
+                        const statusIcon = isSuccess ? "✅" : "❌";
+                        const label = item.isPrimary ? `${esc(item.studentId)} (You)` : `${esc(item.studentId)} (Friend)`;
+                        return `
+                          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:color-mix(in srgb, ${statusColor} 10%, var(--card));border-left:4px solid ${statusColor}">
+                            <div>
+                              <b style="font-size:13.5px;font-family:var(--fd)">${label}</b>
+                              <div style="font-size:12px;color:var(--ink2)">${esc(item.message || (isSuccess ? "Attendance recorded" : "Not accepted"))}</div>
+                            </div>
+                            <span class="pill ${isSuccess ? 'now' : 'done'}" style="--c:${statusColor};font-size:12px">${statusIcon} ${isSuccess ? 'Success' : 'Failed'}</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  `;
+                }
+
+                // Refresh history
+                loadTodayRecords();
+              };
+            }
           }
         };
       }
