@@ -60,9 +60,10 @@ class AuthService {
    * @param {string} [params.captcha] - CAPTCHA code if entered
    * @param {string} [params.srmSessionId] - Optional direct JSESSIONID for developer testing
    * @param {object} params.expressSession - Express request session
+   * @param {boolean} [params.isAutoRenew=false] - Whether this login is an internal auto-renewal
    * @returns {Promise<{ ok: boolean, studentId: string, message: string }>}
    */
-  async login({ username, password, captcha, srmSessionId, expressSession }) {
+  async login({ username, password, captcha, srmSessionId, expressSession, isAutoRenew = false }) {
     if (!username || typeof username !== 'string') {
       throw new ValidationError('Register Number is required.');
     }
@@ -115,7 +116,9 @@ class AuthService {
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
       expressSession.savedCredentials = { username: regNo, password };
-      analyticsService.recordSuccessfulLogin();
+      if (!isAutoRenew) {
+        analyticsService.recordSuccessfulLogin();
+      }
       return {
         ok: true,
         studentId: regNo,
@@ -128,7 +131,9 @@ class AuthService {
       expressSession.studentId = regNo;
       expressSession.isAuthenticated = true;
       expressSession.savedCredentials = { username: regNo, password };
-      analyticsService.recordSuccessfulLogin();
+      if (!isAutoRenew) {
+        analyticsService.recordSuccessfulLogin();
+      }
       return {
         ok: true,
         studentId: regNo,
@@ -162,7 +167,7 @@ class AuthService {
         expressSession.studentId = regNo;
         expressSession.isAuthenticated = true;
         expressSession.savedCredentials = { username: regNo, password };
-        if (!params?.isAutoRenew) {
+        if (!isAutoRenew) {
           analyticsService.recordSuccessfulLogin();
         }
         return {
